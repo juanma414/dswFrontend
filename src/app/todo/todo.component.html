@@ -1,0 +1,96 @@
+<div class="container-fluid">
+    <div class="row">
+        <div style="background: #303030;height: 93vh;" class="col-md-3">
+            <div >
+                <mat-card class="mt-3">
+                   <form [formGroup]="todoForm">
+                        <div class="mb-3 mx-2">
+                            <label for="exampleInputEmail1" class="form-label mx-2 mt-2">Add your incident</label>
+
+                            <input formControlName="item" class="form-control" id="incident" >
+                            
+                        </div>
+                        <button *ngIf="!isEditEnabled" (click)="addTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Add</button>
+                        <button *ngIf="isEditEnabled" (click)="updateTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Update</button>
+
+                    </form> 
+                </mat-card>
+            </div>
+        </div>
+        <div class="col-md-9">
+            <div cdkDropListGroup>
+                <div class="row">
+                    <div class="col-md-4">
+                        <!--todo-->
+                        <div class="example-container">
+                            <h2>To do</h2>
+                        
+                            <div
+                              cdkDropList
+                              [cdkDropListData]="tasks"
+                              class="example-list"
+                              (cdkDropListDropped)="drop($event)">
+                                <div class="example-box" *ngFor="let item of tasks; let i = index" cdkDrag>{{item.description}}
+                                    <div class="box">
+                                        <button mat-mini-fab color="primary" (click)="onEdit(item,i)">
+                                            <mat-icon>edit</mat-icon>
+                                        </button>
+                                        <button mat-mini-fab color="warn" (click)="deleteTask(i)">
+                                            <mat-icon>delete</mat-icon>
+                                        </button>                                        
+                                    </div>
+                                </div>
+                               
+                            </div>
+                          </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- inProgress -->
+                        <div class="example-container">
+                            <h2>In Progress</h2>
+                        
+                            <div
+                              cdkDropList
+                              [cdkDropListData]="inprogress"
+                              class="example-list"
+                              (cdkDropListDropped)="drop($event)">
+                                <div class="example-box" *ngFor="let item of inprogress; let i = index" cdkDrag>{{item.description}}
+                                    <div class="box">
+                                        <button mat-mini-fab color="warn" (click)="deleteInProgressTask(i)">
+                                            <mat-icon>delete</mat-icon>
+                                        </button>                                        
+                                    </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <!-- done -->
+                        <div class="example-container">
+                            <h2>Done</h2>
+                        
+                            <div
+                              cdkDropList
+                              [cdkDropListData]="done"
+                              class="example-list"
+                              (cdkDropListDropped)="drop($event)">
+                                <div class="example-box" *ngFor="let item of done; let i = index" cdkDrag>{{item.description}}
+                                    <div class="box">
+                                        <button mat-mini-fab color="warn" (click)="deleteDoneTask(i)">
+                                            <mat-icon>delete</mat-icon>
+                                        </button>       
+                                        <button mat-mini-fab color="green">
+                                            <mat-icon>check</mat-icon>
+                                        </button>                                    
+                                    </div>
+                                </div>                        
+                            </div>
+                               
+                        </div>
+                          
+                    </div>
+                </div>
+
+            </div>              
+        </div>
+    </div>
+</div>
