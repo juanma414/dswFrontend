@@ -2,6 +2,7 @@ import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/dr
 import { Component } from '@angular/core';
 import {FormGroup, FormBuilder, Validators} from '@angular/forms';
 import { ITask } from '../model/task';
+import { ApiService } from '../services/api.service';
 
 @Component({
   selector: 'app-todo',
@@ -17,14 +18,26 @@ export class TodoComponent {
   updateIndex!:any;
   isEditEnabled:boolean = false;
 
-  constructor(private fb: FormBuilder) {}
+  issues : any[] = [];
+
+  constructor(private fb: FormBuilder, private apiService: ApiService) {}
 
   ngOnInit(): void{
+    this.cargarIssues();
     this.todoForm = this.fb.group({
       item: ['', Validators.required]
     })
   }
 
+  cargarIssues(){
+    this.apiService.getIssues().subscribe(
+      (issues) => {
+        this.issues = issues;
+        console.log(this.issues);
+      },
+      
+    );
+  }
   addTask(){
     this.tasks.push({
       description: this.todoForm.value.item,
