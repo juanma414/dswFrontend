@@ -1,0 +1,52 @@
+<div class="login-container">
+  <div class="login-card">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Iniciar Sesión</mat-card-title>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <!-- Formulario de Login -->
+        <form [formGroup]="loginForm" (ngSubmit)="onLogin()">
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Email</mat-label>
+              <input matInput type="email" formControlName="userEmail" placeholder="tu@email.com">
+              <mat-error *ngIf="loginForm.get('userEmail')?.hasError('required')">
+                El email es requerido
+              </mat-error>
+              <mat-error *ngIf="loginForm.get('userEmail')?.hasError('email')">
+                Ingresa un email válido
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <div class="form-field">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Contraseña</mat-label>
+              <input matInput type="password" formControlName="userPassword" placeholder="Contraseña">
+              <mat-error *ngIf="loginForm.get('userPassword')?.hasError('required')">
+                La contraseña es requerida
+              </mat-error>
+              <mat-error *ngIf="loginForm.get('userPassword')?.hasError('minlength')">
+                Mínimo 6 caracteres
+              </mat-error>
+            </mat-form-field>
+          </div>
+          
+          <button mat-raised-button color="primary" type="submit" 
+                  [disabled]="loginForm.invalid || isLoading" class="full-width">
+            {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+          </button>
+        </form>
+        
+        <!-- Información de usuarios de prueba -->
+        <div class="test-users-info">
+          <h4>Usuarios de prueba:</h4>
+          <p><strong>Administrador:</strong> admin@test.com / admin123</p>
+          <p><strong>Desarrollador:</strong> juan@test.com / juan123</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

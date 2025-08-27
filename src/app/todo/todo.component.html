@@ -5,10 +5,28 @@
                 <mat-card class="mt-3">
                    <form [formGroup]="todoForm">
                         <div class="mb-3 mx-2">
-                            <label for="exampleInputEmail1" class="form-label mx-2 mt-2">Add your incident</label>
-
-                            <input formControlName="item" class="form-control" id="incident" >
-                            
+                            <label for="title" class="form-label mx-2 mt-2">Title</label>
+                            <input formControlName="title" class="form-control" id="title" placeholder="Enter title">
+                        </div>
+                        <div class="mb-3 mx-2">
+                            <label for="description" class="form-label mx-2">Description</label>
+                            <textarea formControlName="description" class="form-control" id="description" rows="3" placeholder="Enter description"></textarea>
+                        </div>
+                        <div class="mb-3 mx-2">
+                            <mat-form-field appearance="outline" class="priority-field">
+                                <mat-label>Priority</mat-label>
+                                <mat-select formControlName="priority">
+                                    <mat-option value="low">
+                                        <span class="priority-option low">🟢 Baja</span>
+                                    </mat-option>
+                                    <mat-option value="medium">
+                                        <span class="priority-option medium">🟡 Media</span>
+                                    </mat-option>
+                                    <mat-option value="high">
+                                        <span class="priority-option high">🔴 Alta</span>
+                                    </mat-option>
+                                </mat-select>
+                            </mat-form-field>
                         </div>
                         <button *ngIf="!isEditEnabled" (click)="addTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Add</button>
                         <button *ngIf="isEditEnabled" (click)="updateTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Update</button>
@@ -30,12 +48,25 @@
                               [cdkDropListData]="tasks"
                               class="example-list"
                               (cdkDropListDropped)="drop($event)">
-                                <div class="example-box" *ngFor="let item of tasks; let i = index" cdkDrag>{{item.description}}
+                                <div class="example-box" *ngFor="let item of tasks; let i = index" cdkDrag>
+                                    <div>
+                                        <h5 class="task-title">{{item.title}}</h5>
+                                        <p>{{item.description}}</p>
+                                        <div class="task-meta">
+                                            <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
+                                                {{getPriorityLabel(item.issuePriority || 'medium')}}
+                                            </span>
+                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                        </div>
+                                    </div>
                                     <div class="box">
                                         <button mat-mini-fab color="primary" (click)="onEdit(item,i)">
                                             <mat-icon>edit</mat-icon>
                                         </button>
-                                        <button mat-mini-fab color="warn" (click)="deleteTask(i)">
+                                        <button *ngIf="isAdmin()" mat-mini-fab color="accent" (click)="openAssignmentModal(item)" title="Cambiar asignación">
+                                            <mat-icon>person</mat-icon>
+                                        </button>
+                                        <button *ngIf="isAdmin()" mat-mini-fab color="warn" (click)="deleteTask(i)">
                                             <mat-icon>delete</mat-icon>
                                         </button>                                        
                                     </div>
@@ -54,9 +85,22 @@
                               [cdkDropListData]="inprogress"
                               class="example-list"
                               (cdkDropListDropped)="drop($event)">
-                                <div class="example-box" *ngFor="let item of inprogress; let i = index" cdkDrag>{{item.description}}
+                                <div class="example-box" *ngFor="let item of inprogress; let i = index" cdkDrag>
+                                    <div>
+                                        <h5 class="task-title">{{item.title}}</h5>
+                                        <p>{{item.description}}</p>
+                                        <div class="task-meta">
+                                            <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
+                                                {{getPriorityLabel(item.issuePriority || 'medium')}}
+                                            </span>
+                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                        </div>
+                                    </div>
                                     <div class="box">
-                                        <button mat-mini-fab color="warn" (click)="deleteInProgressTask(i)">
+                                        <button *ngIf="isAdmin()" mat-mini-fab color="accent" (click)="openAssignmentModal(item)" title="Cambiar asignación">
+                                            <mat-icon>person</mat-icon>
+                                        </button>
+                                        <button *ngIf="isAdmin()" mat-mini-fab color="warn" (click)="deleteInProgressTask(i)">
                                             <mat-icon>delete</mat-icon>
                                         </button>                                        
                                     </div>
@@ -75,12 +119,25 @@
                           [cdkDropListData]="done"
                           class="example-list"
                           (cdkDropListDropped)="drop($event)">
-                            <div class="example-box" *ngFor="let item of done; let i = index" cdkDrag>{{item.description}}
+                            <div class="example-box" *ngFor="let item of done; let i = index" cdkDrag>
+                                <div>
+                                    <h5 class="task-title">{{item.title}}</h5>
+                                    <p>{{item.description}}</p>
+                                    <div class="task-meta">
+                                        <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
+                                            {{getPriorityLabel(item.issuePriority || 'medium')}}
+                                        </span>
+                                        <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                    </div>
+                                </div>
                                 <div class="box">
-                                    <button mat-mini-fab color="warn" (click)="deleteDoneTask(i)">
+                                    <button *ngIf="isAdmin()" mat-mini-fab color="accent" (click)="openAssignmentModal(item)" title="Cambiar asignación">
+                                        <mat-icon>person</mat-icon>
+                                    </button>
+                                    <button *ngIf="isAdmin()" mat-mini-fab color="warn" (click)="deleteDoneTask(i)">
                                         <mat-icon>delete</mat-icon>
                                     </button>       
-                                    <button mat-mini-fab color="green">
+                                    <button mat-mini-fab color="primary" (click)="completeIssue(i)">
                                         <mat-icon>check</mat-icon>
                                     </button>                                    
                                 </div>
@@ -91,6 +148,40 @@
                       
                 </div>
             </div>              
+        </div>
+    </div>
+</div>
+
+<!-- Modal para asignación de usuarios -->
+<div *ngIf="isAssignmentModalOpen" class="modal-overlay" (click)="closeAssignmentModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h4>Asignar Issue a Usuario</h4>
+            <button class="close-btn" (click)="closeAssignmentModal()">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div *ngIf="editingIssue" class="issue-info">
+                <h5>{{editingIssue.title}}</h5>
+                <p>{{editingIssue.description}}</p>
+                <p><strong>Actualmente asignado a:</strong> {{getSupervisorDisplayName(editingIssue.issueSupervisor)}}</p>
+            </div>
+            
+            <div class="users-list">
+                <h6>Seleccionar nuevo usuario:</h6>
+                <div *ngIf="availableUsers.length === 0" class="no-users">
+                    <p>Cargando usuarios...</p>
+                </div>
+                <div class="user-option" *ngFor="let user of availableUsers" 
+                     (click)="assignIssueToUser(user.userId, user.userName, user.userLastName)">
+                    <mat-icon>person</mat-icon>
+                    <span>{{user.userName}} {{user.userLastName}}</span>
+                    <small class="user-email">{{user.userEmail}}</small>
+                </div>
+                <div *ngIf="availableUsers.length === 0" class="debug-info">
+                    <small>Debug: availableUsers = {{availableUsers | json}}</small>
+                </div>
+            </div>
         </div>
     </div>
 </div>

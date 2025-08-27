@@ -1,0 +1,133 @@
+<div class="admin-container">
+  <div class="admin-header">
+    <h1>Administración de Usuarios</h1>
+    <button mat-raised-button routerLink="/todo" color="primary">
+      <mat-icon>arrow_back</mat-icon>
+      Volver al Tablero
+    </button>
+  </div>
+
+  <div class="content-wrapper">
+    <!-- Formulario para crear/editar usuarios -->
+    <div class="form-section">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>
+            {{ editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario' }}
+          </mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Nombre</mat-label>
+                <input matInput formControlName="userName" placeholder="Nombre">
+                <mat-error *ngIf="userForm.get('userName')?.hasError('required')">
+                  El nombre es requerido
+                </mat-error>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Apellido</mat-label>
+                <input matInput formControlName="userLastName" placeholder="Apellido">
+                <mat-error *ngIf="userForm.get('userLastName')?.hasError('required')">
+                  El apellido es requerido
+                </mat-error>
+              </mat-form-field>
+            </div>
+            
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="userEmail" placeholder="usuario@email.com">
+                <mat-error *ngIf="userForm.get('userEmail')?.hasError('required')">
+                  El email es requerido
+                </mat-error>
+                <mat-error *ngIf="userForm.get('userEmail')?.hasError('email')">
+                  Ingresa un email válido
+                </mat-error>
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Rol</mat-label>
+                <mat-select formControlName="userRol">
+                  <mat-option value="developer">Developer</mat-option>
+                  <mat-option value="administrator">Administrator</mat-option>
+                  <mat-option value="designer">Designer</mat-option>
+                </mat-select>
+                <mat-error *ngIf="userForm.get('userRol')?.hasError('required')">
+                  El rol es requerido
+                </mat-error>
+              </mat-form-field>
+            </div>
+            
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Contraseña</mat-label>
+              <input matInput type="password" formControlName="userPassword" 
+                     [placeholder]="editingUser ? 'Nueva contraseña (dejar vacío para mantener actual)' : 'Contraseña'">
+              <mat-error *ngIf="userForm.get('userPassword')?.hasError('required')">
+                La contraseña es requerida
+              </mat-error>
+              <mat-error *ngIf="userForm.get('userPassword')?.hasError('minlength')">
+                Mínimo 6 caracteres
+              </mat-error>
+            </mat-form-field>
+            
+            <div class="form-actions">
+              <button mat-raised-button color="primary" type="submit" 
+                      [disabled]="userForm.invalid || isLoading">
+                {{ isLoading ? 'Guardando...' : (editingUser ? 'Actualizar' : 'Crear') }}
+              </button>
+              
+              <button *ngIf="editingUser" mat-button type="button" (click)="resetForm()">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Lista de usuarios -->
+    <div class="users-section">
+      <mat-card>
+        <mat-card-header>
+          <mat-card-title>Lista de Usuarios</mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <div *ngIf="isLoading" class="loading">
+            Cargando usuarios...
+          </div>
+          
+          <div *ngIf="!isLoading && users.length === 0" class="no-users">
+            No hay usuarios registrados
+          </div>
+          
+          <div *ngIf="!isLoading && users.length > 0" class="users-list">
+            <div *ngFor="let user of users" class="user-card">
+              <div class="user-info">
+                <h3>{{user.userName}} {{user.userLastName}}</h3>
+                <p>{{user.userEmail}}</p>
+                <span class="role-badge" [ngClass]="'role-' + user.userRol">
+                  {{user.userRol}}
+                </span>
+              </div>
+              
+              <div class="user-actions">
+                <button mat-icon-button color="primary" (click)="editUser(user)" [disabled]="isLoading">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                
+                <button mat-icon-button color="warn" (click)="deleteUser(user)" [disabled]="isLoading">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div>

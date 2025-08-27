@@ -1,3 +1,37 @@
 <mat-toolbar style="background-color: #1b76f1; color: white;">
     <h1>DSW Jira Clone</h1>
+    
+    <span class="navbar-spacer"></span>
+    
+    <div *ngIf="authService.isLoggedIn()" class="user-info">
+        <span class="user-name">Hola, {{getCurrentUserName()}}</span>
+        
+        <!-- Botón de Dashboard - Solo para administradores -->
+        <button *ngIf="isAdmin()" 
+                mat-raised-button 
+                color="primary" 
+                (click)="goToDashboard()" 
+                class="admin-btn">
+            <mat-icon>dashboard</mat-icon>
+            Dashboard
+        </button>
+        
+        <!-- Botón de Administrar Usuarios - Solo para administradores -->
+        <button *ngIf="isAdmin()" 
+                mat-raised-button 
+                color="primary" 
+                (click)="goToUserManagement()" 
+                class="admin-btn">
+            <mat-icon>people</mat-icon>
+            Administrar Usuarios
+        </button>
+        
+        <button mat-raised-button 
+                color="accent" 
+                (click)="logout()" 
+                class="logout-btn">
+            <mat-icon>logout</mat-icon>
+            Cerrar Sesión
+        </button>
+    </div>
 </mat-toolbar>

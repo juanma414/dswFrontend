@@ -1,0 +1,129 @@
+.admin-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  
+  h1 {
+    margin: 0;
+    color: #333;
+  }
+}
+
+.content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  
+  @media (max-width: 968px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-section,
+.users-section {
+  mat-card {
+    padding: 20px;
+  }
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  
+  @media (max-width: 600px) {
+    flex-direction: column;
+  }
+}
+
+.half-width {
+  flex: 1;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+
+.loading,
+.no-users {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.user-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  
+  &:hover {
+    background-color: #f0f0f0;
+  }
+}
+
+.user-info {
+  flex: 1;
+  
+  h3 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 16px;
+  }
+  
+  p {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 14px;
+  }
+}
+
+.role-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  text-transform: capitalize;
+  
+  &.role-administrator {
+    background-color: #f44336;
+    color: white;
+  }
+  
+  &.role-developer {
+    background-color: #2196f3;
+    color: white;
+  }
+  
+  &.role-designer {
+    background-color: #ff9800;
+    color: white;
+  }
+}
+
+.user-actions {
+  display: flex;
+  gap: 5px;
+}

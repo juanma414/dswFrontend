@@ -1,0 +1,72 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+mat-card {
+  padding: 24px;
+}
+
+mat-card-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+mat-card-title {
+  font-size: 24px;
+  font-weight: 500;
+}
+
+button[mat-raised-button] {
+  height: 48px;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.test-users-info {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #e3f2fd;
+  border-radius: 8px;
+  border-left: 4px solid #2196f3;
+  
+  h4 {
+    margin: 0 0 15px 0;
+    color: #1565c0;
+    font-size: 16px;
+  }
+  
+  p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: #333;
+    
+    strong {
+      color: #1565c0;
+    }
+  }
+}
