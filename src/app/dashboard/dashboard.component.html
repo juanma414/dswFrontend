@@ -104,7 +104,7 @@
             <div class="chart-item" *ngFor="let status of getStatusArray()">
               <div class="chart-label">
                 <span class="status-badge" [ngClass]="'status-' + status.key">
-                  {{status.label}}
+                    {{ status.key === 'closed' ? 'Cerrado' : status.label }}
                 </span>
               </div>
               <div class="chart-value">{{status.value}}</div>
@@ -152,7 +152,7 @@
             <div class="col total">{{user.totalIssues}}</div>
             <div class="col todo">{{user.todoIssues}}</div>
             <div class="col progress">{{user.inProgressIssues}}</div>
-            <div class="col done">{{user.doneIssues}}</div>
+              <div class="col done">{{user.closedIssues}}</div>
           </div>
         </div>
       </mat-card-content>

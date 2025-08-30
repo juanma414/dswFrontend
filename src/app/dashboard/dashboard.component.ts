@@ -82,7 +82,7 @@ export class DashboardComponent implements OnInit {
   }
 
   calculateStatistics(): void {
-    // Estadísticas por estado
+    // Estadísticas por estado (incluyendo closed)
     this.issuesByStatus = this.allIssues.reduce((acc, issue) => {
       const status = issue.issueStataus || 'unknown';
       acc[status] = (acc[status] || 0) + 1;
@@ -109,12 +109,12 @@ export class DashboardComponent implements OnInit {
           totalIssues: 0,
           todoIssues: 0,
           inProgressIssues: 0,
-          doneIssues: 0
+          closedIssues: 0 // ahora contará closed
         };
       }
-      
+
       acc[supervisor].totalIssues++;
-      
+
       switch (issue.issueStataus) {
         case 'todo':
           acc[supervisor].todoIssues++;
@@ -122,11 +122,11 @@ export class DashboardComponent implements OnInit {
         case 'inprogress':
           acc[supervisor].inProgressIssues++;
           break;
-        case 'done':
-          acc[supervisor].doneIssues++;
+        case 'closed':
+          acc[supervisor].closedIssues++;
           break;
       }
-      
+
       return acc;
     }, {});
 

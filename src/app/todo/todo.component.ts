@@ -255,25 +255,20 @@ export class TodoComponent {
   // Marcar issue como completado (botón check)
   completeIssue(i: number) {
     const issue = this.done[i];
-    
-    if (confirm('¿Marcar este issue como completado? Desaparecerá del tablero y se registrará la fecha de finalización.')) {
+    if (confirm('¿Marcar este issue como cerrado? Desaparecerá del tablero y se registrará la fecha de cierre.')) {
       if (issue.issueId) {
-        this.apiService.completeIssue(issue.issueId).subscribe({
+        this.apiService.updateIssueStatus(issue.issueId, 'closed').subscribe({
           next: (response) => {
-            console.log('Issue completado:', response);
-            const completedIssue = response.data || response;
-            
-            // Mostrar información de finalización
-            const endDate = new Date(completedIssue.issueEndDate).toLocaleString();
-            
-            // Remover de la columna Done
+            console.log('Issue cerrado:', response);
+            const closedIssue = response.data || response;
+            const endDate = new Date(closedIssue.issueEndDate).toLocaleString();
             this.done.splice(i, 1);
-            console.log('Issue marcado como completado con fecha:', endDate);
-            alert(`Issue completado exitosamente!\nFecha de finalización: ${endDate}`);
+            console.log('Issue marcado como cerrado con fecha:', endDate);
+            alert(`Issue cerrado exitosamente!\nFecha de cierre: ${endDate}`);
           },
           error: (error) => {
-            console.error('Error completing issue:', error);
-            alert('Error al completar el issue: ' + (error.error?.message || error.message));
+            console.error('Error cerrando issue:', error);
+            alert('Error al cerrar el issue: ' + (error.error?.message || error.message));
           }
         });
       }
