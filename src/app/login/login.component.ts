@@ -8,18 +8,23 @@ import { AuthService } from '../services/auth.service';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })
+
 export class LoginComponent implements OnInit {
+  
   loginForm: FormGroup;
   isLoading = false;
+  hidePassword = true; // Para controlar la visibilidad de la contraseña
 
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
     private router: Router
-  ) {
+  )
+  
+  {
     this.loginForm = this.fb.group({
-      userEmail: ['', [Validators.required, Validators.email]],
-      userPassword: ['', [Validators.required, Validators.minLength(6)]]
+      userEmail: ['', [Validators.required, Validators.email]], //campo requerido y debe ser un email válido
+      userPassword: ['', [Validators.required, Validators.minLength(6)]]  // campo requerido y debe tener al menos 6 caracteres
     });
   }
 
@@ -46,13 +51,15 @@ export class LoginComponent implements OnInit {
           this.router.navigate(['/todo']);
           this.isLoading = false;
         },
+
         error: (error) => {
           console.error('Error en login:', error);
           alert('Error: ' + (error.error?.message || 'Error al iniciar sesión'));
           this.isLoading = false;
         }
       });
-    } else {
+    }
+     else {
       alert('Por favor completa todos los campos correctamente');
     }
   }
