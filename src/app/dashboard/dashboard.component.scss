@@ -240,6 +240,7 @@
       
       .col {
         padding: 8px 0;
+        font-weight: 500;
         
         &.user-name {
           font-weight: 500;
@@ -254,14 +255,17 @@
         
         &.todo {
           color: #d63031;
+          font-weight: 600;
         }
         
-        &.progress {
-          color: #74b9ff;
+        &.in-progress {
+          color: #0984e3;
+          font-weight: 600;
         }
         
         &.done {
-          color: #55a3ff;
+          color: #00b894;
+          font-weight: 600;
         }
       }
     }

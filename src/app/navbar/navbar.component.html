@@ -6,6 +6,29 @@
     <div *ngIf="authService.isLoggedIn()" class="user-info">
         <span class="user-name">Hola, {{getCurrentUserName()}}</span>
         
+        <!-- Selectores de Proyecto y Sprint -->
+        <div class="project-sprint-selectors">
+            <mat-form-field appearance="fill" class="project-selector">
+                <mat-label>Proyecto</mat-label>
+                <mat-select [(ngModel)]="selectedProject" (selectionChange)="onProjectChange()">
+                    <mat-option [value]="null">Todos los proyectos</mat-option>
+                    <mat-option *ngFor="let project of projects" [value]="project">
+                        {{project.description}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" class="sprint-selector" *ngIf="selectedProject">
+                <mat-label>Sprint</mat-label>
+                <mat-select [(ngModel)]="selectedSprint" (selectionChange)="onSprintChange()">
+                    <mat-option [value]="null">Todos los sprints</mat-option>
+                    <mat-option *ngFor="let sprint of sprints" [value]="sprint">
+                        Sprint {{sprint.nroSprint}} - {{sprint.description}}
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+        
         <!-- Botón de Dashboard - Solo para administradores -->
         <button *ngIf="isAdmin()" 
                 mat-raised-button 
@@ -25,6 +48,17 @@
             <mat-icon>people</mat-icon>
             Administrar Usuarios
         </button>
+
+        <!-- Botón de Backlog - Solo para administradores -->
+        <button *ngIf="isAdmin()" 
+                mat-raised-button 
+                color="primary" 
+                (click)="goToBacklog()" 
+                class="admin-btn">
+            <mat-icon>list_alt</mat-icon>
+            Backlog
+        </button>
+        
         
         <button mat-raised-button 
                 color="accent" 

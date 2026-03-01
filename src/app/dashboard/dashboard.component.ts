@@ -22,6 +22,15 @@ export class DashboardComponent implements OnInit {
   selectedDateRange: { start: Date | null, end: Date | null } = { start: null, end: null };
   selectedUser: string = '';
   
+  // Nuevos: Proyectos y Sprints
+  availableProjects: any[] = [];
+  availableSprints: any[] = [];
+  selectedProject: number | null = null;
+  selectedSprint: number | null = null;
+  
+  // Usuarios para mapear IDs a nombres
+  availableUsers: any[] = [];
+  
   // Estados para gráficos
   issuesByStatus: any = {};
   issuesByPriority: any = {};
@@ -49,7 +58,9 @@ export class DashboardComponent implements OnInit {
       searchText: [''],
       startDate: [''],
       endDate: [''],
-      userFilter: ['']
+      userFilter: [''],
+      projectFilter: [''],
+      sprintFilter: ['']
     });
 
     // Suscribirse a cambios en el formulario para filtrado en tiempo real
@@ -64,11 +75,21 @@ export class DashboardComponent implements OnInit {
   }
 
   loadAllData(): void {
+    // Cargar proyectos
+    this.loadProjects();
+    // Cargar usuarios
+    this.loadUsers();
+    
     // Cargar todos los issues sin filtros para el dashboard
     this.apiService.getIssues().subscribe({
       next: (response) => {
         console.log('Dashboard - Issues cargados:', response);
-        this.allIssues = response.issueClass || response.data || response;
+        // MikroORM devuelve las relaciones como objetos, necesitamos extraer los IDs
+        this.allIssues = (response.issueClass || response.data || response).map((issue: any) => ({
+          ...issue,
+          idProject: issue.project?.projectId || issue.idProject,
+          idSprint: issue.sprint?.idSprint || issue.idSprint
+        }));
         this.filteredIssues = [...this.allIssues];
         
         this.calculateStatistics();
@@ -82,15 +103,15 @@ export class DashboardComponent implements OnInit {
   }
 
   calculateStatistics(): void {
-    // Estadísticas por estado (incluyendo closed)
-    this.issuesByStatus = this.allIssues.reduce((acc, issue) => {
+    // Estadísticas por estado (incluyendo closed) - usar filteredIssues
+    this.issuesByStatus = this.filteredIssues.reduce((acc, issue) => {
       const status = issue.issueStataus || 'unknown';
       acc[status] = (acc[status] || 0) + 1;
       return acc;
     }, {});
 
-    // Estadísticas por prioridad
-    this.issuesByPriority = this.allIssues.reduce((acc, issue) => {
+    // Estadísticas por prioridad - usar filteredIssues
+    this.issuesByPriority = this.filteredIssues.reduce((acc, issue) => {
       const priority = issue.issuePriority || 'medium';
       acc[priority] = (acc[priority] || 0) + 1;
       return acc;
@@ -101,29 +122,32 @@ export class DashboardComponent implements OnInit {
   }
 
   calculateUserStats(): void {
-    const userMap = this.allIssues.reduce((acc, issue) => {
-      const supervisor = issue.issueSupervisor || 'Sin Asignar';
-      if (!acc[supervisor]) {
-        acc[supervisor] = {
-          userName: supervisor,
+    const userMap = this.filteredIssues.reduce((acc, issue) => {
+      const supervisorId = issue.issueSupervisor || 'Sin Asignar';
+      // Convertir ID a nombre completo
+      const displayName = this.getUserDisplayName(supervisorId);
+      
+      if (!acc[displayName]) {
+        acc[displayName] = {
+          userName: displayName,
           totalIssues: 0,
           todoIssues: 0,
           inProgressIssues: 0,
-          closedIssues: 0 // ahora contará closed
+          closedIssues: 0
         };
       }
 
-      acc[supervisor].totalIssues++;
+      acc[displayName].totalIssues++;
 
       switch (issue.issueStataus) {
         case 'todo':
-          acc[supervisor].todoIssues++;
+          acc[displayName].todoIssues++;
           break;
         case 'inprogress':
-          acc[supervisor].inProgressIssues++;
+          acc[displayName].inProgressIssues++;
           break;
         case 'closed':
-          acc[supervisor].closedIssues++;
+          acc[displayName].closedIssues++;
           break;
       }
 
@@ -189,15 +213,108 @@ export class DashboardComponent implements OnInit {
         passesFilter = passesFilter && (issue.issueSupervisor || '').includes(filterValues.userFilter);
       }
 
+      // Filtro por proyecto
+      if (filterValues.projectFilter) {
+        const projectId = parseInt(filterValues.projectFilter);
+        passesFilter = passesFilter && issue.idProject === projectId;
+      }
+
+      // Filtro por sprint
+      if (filterValues.sprintFilter) {
+        const sprintId = parseInt(filterValues.sprintFilter);
+        passesFilter = passesFilter && issue.idSprint === sprintId;
+      }
+
       return passesFilter;
     });
 
     console.log('Filtered issues:', this.filteredIssues.length, 'of', this.allIssues.length);
+    
+    // Recalcular estadísticas con los issues filtrados
+    this.calculateStatistics();
+    this.calculateUserStats();
+  }
+
+  loadProjects(): void {
+    this.apiService.getProjects().subscribe({
+      next: (response) => {
+        this.availableProjects = response.projectsClasses || response.data || [];
+        console.log('Dashboard - Proyectos cargados:', this.availableProjects.length);
+      },
+      error: (error) => {
+        console.error('Error loading projects:', error);
+      }
+    });
+  }
+
+  loadUsers(): void {
+    this.apiService.getUsers().subscribe({
+      next: (response) => {
+        this.availableUsers = response.usersClasses || response.data || response.users || [];
+        console.log('Dashboard - Usuarios cargados:', this.availableUsers.length);
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.availableUsers = [];
+      }
+    });
+  }
+
+  getUserDisplayName(supervisorId: string | undefined): string {
+    if (!supervisorId) {
+      return 'Sin Asignar';
+    }
+
+    // Verificar si es un número (userId)
+    const userId = parseInt(supervisorId);
+    if (!isNaN(userId) && userId.toString() === supervisorId) {
+      // Buscar en la lista de usuarios
+      const user = this.availableUsers.find(u => u.userId === userId);
+      if (user) {
+        return `${user.userName} ${user.userLastName}`;
+      }
+      return `Usuario #${userId}`;
+    }
+
+    // Si no es un número, devolver el valor tal cual
+    return supervisorId;
+  }
+
+  loadSprintsByProject(projectId: number): void {
+    if (!projectId) {
+      this.availableSprints = [];
+      this.searchForm.patchValue({ sprintFilter: '' });
+      return;
+    }
+    
+    this.apiService.getSprintsByProject(projectId).subscribe({
+      next: (response) => {
+        this.availableSprints = response.sprintsClasses || response.data || [];
+        console.log('Dashboard - Sprints cargados:', this.availableSprints.length);
+      },
+      error: (error) => {
+        console.error('Error loading sprints:', error);
+        this.availableSprints = [];
+      }
+    });
+  }
+
+  onProjectChange(event: any): void {
+    const projectId = event.value;
+    if (projectId) {
+      this.loadSprintsByProject(projectId);
+    } else {
+      this.availableSprints = [];
+      this.searchForm.patchValue({ sprintFilter: '' });
+    }
   }
 
   clearFilters(): void {
     this.searchForm.reset();
+    this.availableSprints = [];
     this.filteredIssues = [...this.allIssues];
+    this.calculateStatistics();
+    this.calculateUserStats();
   }
 
   goBack(): void {

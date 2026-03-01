@@ -64,6 +64,30 @@
           </mat-form-field>
           
           <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Proyecto</mat-label>
+            <mat-select formControlName="projectFilter" (selectionChange)="onProjectChange($event)">
+              <mat-option [value]="null">Todos los proyectos</mat-option>
+              <mat-option *ngFor="let project of availableProjects" [value]="project.idProject">
+                {{ project.description }}
+              </mat-option>
+            </mat-select>
+            <mat-icon matSuffix>folder</mat-icon>
+          </mat-form-field>
+          
+          <mat-form-field appearance="outline" class="filter-field">
+            <mat-label>Sprint</mat-label>
+            <mat-select formControlName="sprintFilter" [disabled]="availableSprints.length === 0">
+              <mat-option [value]="null">Todos los sprints</mat-option>
+              <mat-option *ngFor="let sprint of availableSprints" [value]="sprint.idSprint">
+                Sprint {{ sprint.nroSprint }} - {{ sprint.description }}
+              </mat-option>
+            </mat-select>
+            <mat-icon matSuffix>event</mat-icon>
+          </mat-form-field>
+        </div>
+        
+        <div class="filter-row">
+          <mat-form-field appearance="outline" class="filter-field">
             <mat-label>Fecha de inicio</mat-label>
             <input matInput [matDatepicker]="startPicker" formControlName="startDate">
             <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
@@ -151,8 +175,8 @@
             <div class="col user-name">{{user.userName}}</div>
             <div class="col total">{{user.totalIssues}}</div>
             <div class="col todo">{{user.todoIssues}}</div>
-            <div class="col progress">{{user.inProgressIssues}}</div>
-              <div class="col done">{{user.closedIssues}}</div>
+            <div class="col in-progress">{{user.inProgressIssues}}</div>
+            <div class="col done">{{user.closedIssues}}</div>
           </div>
         </div>
       </mat-card-content>
@@ -197,7 +221,7 @@
                 {{getPriorityLabel(issue.issuePriority)}}
               </span>
             </div>
-            <div class="col">{{issue.issueSupervisor || 'Sin Asignar'}}</div>
+            <div class="col">{{getUserDisplayName(issue.issueSupervisor)}}</div>
             <div class="col">{{issue.issueCreateDate | date:'dd/MM/yyyy'}}</div>
           </div>
           

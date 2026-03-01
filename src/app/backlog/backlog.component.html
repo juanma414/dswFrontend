@@ -1,0 +1,291 @@
+<div class="backlog-container">
+  <div class="backlog-header">
+    <div class="header-content">
+      <div class="header-text">
+        <h1>Gestión de Backlog</h1>
+        <p class="backlog-subtitle">
+          Administración de incidentes en backlog
+          <span *ngIf="selectedProject" class="project-filter-indicator">
+            • Proyecto: {{selectedProject.description}}
+          </span>
+        </p>
+      </div>
+      <div class="header-actions">
+        <button mat-raised-button color="accent" (click)="openCreateProjectDialog()" class="action-btn">
+          <mat-icon>add_box</mat-icon>
+          Crear Proyecto
+        </button>
+        <button mat-raised-button color="accent" (click)="openCreateSprintDialog()" class="action-btn">
+          <mat-icon>event</mat-icon>
+          Crear Sprint
+        </button>
+        <button mat-raised-button color="primary" (click)="goBack()" class="back-btn">
+          <mat-icon>arrow_back</mat-icon>
+          Volver al Tablero
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="add-issue-section">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>Agregar Nuevo Issue</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="!formReady" class="loading">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Cargando formulario...</p>
+        </div>
+        <form *ngIf="formReady" (ngSubmit)="addIssue()" #issueForm="ngForm">
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Título</mat-label>
+            <input matInput [(ngModel)]="newIssue.title" name="title" required>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Descripción</mat-label>
+            <textarea matInput [(ngModel)]="newIssue.description" name="description" rows="3" required></textarea>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Prioridad</mat-label>
+            <mat-select [(ngModel)]="newIssue.priority" name="priority" required>
+              <mat-option value="low">
+                <span class="priority-option low">🟢 Baja</span>
+              </mat-option>
+              <mat-option value="medium">
+                <span class="priority-option medium">🟡 Media</span>
+              </mat-option>
+              <mat-option value="high">
+                <span class="priority-option high">🔴 Alta</span>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Tipo de Issue</mat-label>
+            <mat-select [(ngModel)]="selectedTypeIssue" name="typeIssue" required>
+              <mat-option *ngFor="let type of availableTypeIssues" [value]="type.typeIssueId">
+                {{ type.typeIssueDescription }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Proyecto*</mat-label>
+            <mat-select [(ngModel)]="selectedProjectForNew" name="project" required (selectionChange)="loadSprintsByProject($event.value)">
+              <mat-option *ngFor="let project of availableProjects" [value]="project.idProject">
+                {{ project.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width" *ngIf="availableSprints.length > 0">
+            <mat-label>Sprint (Opcional)</mat-label>
+            <mat-select [(ngModel)]="selectedSprintForNew" name="sprint">
+              <mat-option [value]="null">Sin asignar</mat-option>
+              <mat-option *ngFor="let sprint of availableSprints" [value]="sprint.idSprint">
+                Sprint {{ sprint.nroSprint }} - {{ sprint.description }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="fill" class="full-width">
+            <mat-label>Asignar a Usuario (Opcional)</mat-label>
+            <mat-select [(ngModel)]="selectedUserForNew" name="user">
+              <mat-option [value]="null">Sin asignar</mat-option>
+              <mat-option *ngFor="let user of availableUsers" [value]="user.userId">
+                {{ user.userName }} {{ user.userLastName }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary" type="submit" [disabled]="!issueForm.form.valid || !selectedTypeIssue || !selectedProjectForNew">
+            <mat-icon>add</mat-icon>
+            Agregar Issue
+          </button>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="issues-section">
+    <h2>Issues en Backlog</h2>
+    
+    <div *ngIf="loading" class="loading">
+      <mat-spinner></mat-spinner>
+    </div>
+
+    <div *ngIf="!loading && issues.length === 0" class="no-issues">
+      <p>No hay issues en el backlog</p>
+    </div>
+
+    <div class="issues-grid">
+      <mat-card *ngFor="let issue of issues" class="issue-card">
+        <mat-card-header>
+          <mat-card-title>{{ issue.title }}</mat-card-title>
+          <mat-card-subtitle>
+            <span class="priority-badge" [ngClass]="'priority-' + issue.priority">
+              {{ getPriorityLabel(issue.priority) }}
+            </span>
+            <span *ngIf="issue.typeIssueDescription" class="type-badge">
+              {{ issue.typeIssueDescription }}
+            </span>
+            <span *ngIf="issue.idSprint" class="sprint-badge">
+              Sprint asignado
+            </span>
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ issue.description }}</p>
+          <div class="issue-meta">
+            <span *ngIf="issue.createdAt"><strong>Creado:</strong> {{ issue.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+        </mat-card-content>
+        <mat-card-actions>
+          <button mat-button color="primary" (click)="moveToSprint(issue)">
+            <mat-icon>arrow_forward</mat-icon>
+            {{ issue.idSprint ? 'Reasignar' : 'Asignar a Proyecto/Sprint' }}
+          </button>
+          <button mat-button color="warn" (click)="deleteIssue(issue)">
+            <mat-icon>delete</mat-icon>
+            Eliminar
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </div>
+
+  <!-- Diálogo para asignar issue a sprint -->
+  <div class="assign-dialog-overlay" *ngIf="showAssignDialog" (click)="closeAssignDialog()">
+    <div class="assign-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Asignar Issue a Proyecto/Sprint</h3>
+        <button mat-icon-button (click)="closeAssignDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="dialog-content">
+        <p><strong>Issue:</strong> {{ assigningIssue?.title }}</p>
+        
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Selecciona un Proyecto</mat-label>
+          <mat-select [(ngModel)]="selectedProjectForAssign" (selectionChange)="onProjectChangeInAssign()" required>
+            <mat-option *ngFor="let project of availableProjects" [value]="project.idProject">
+              {{ project.description }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width" *ngIf="selectedProjectForAssign && availableSprints.length > 0">
+          <mat-label>Selecciona un Sprint (Opcional)</mat-label>
+          <mat-select [(ngModel)]="selectedSprintForAssign">
+            <mat-option [value]="null">Sin sprint (dejar en backlog)</mat-option>
+            <mat-option *ngFor="let sprint of availableSprints" [value]="sprint.idSprint">
+              Sprint {{ sprint.nroSprint }} - {{ sprint.description }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Asignar a Usuario (Opcional)</mat-label>
+          <mat-select [(ngModel)]="selectedUserForAssign">
+            <mat-option [value]="null">Sin asignar</mat-option>
+            <mat-option *ngFor="let user of availableUsers" [value]="user.userId">
+              {{ user.userName }} {{ user.userLastName }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <p *ngIf="selectedProjectForAssign && availableSprints.length === 0" class="no-sprints-message">
+          <mat-icon>info</mat-icon>
+          Este proyecto no tiene sprints. El issue se asignará al backlog del proyecto.
+        </p>
+      </div>
+      <div class="dialog-actions">
+        <button mat-button (click)="closeAssignDialog()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="confirmAssignToSprint()" [disabled]="!selectedProjectForAssign">
+          Asignar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diálogo para crear proyecto -->
+  <div class="assign-dialog-overlay" *ngIf="showCreateProjectDialog" (click)="closeCreateProjectDialog()">
+    <div class="assign-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Crear Nuevo Proyecto</h3>
+        <button mat-icon-button (click)="closeCreateProjectDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="dialog-content">
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Descripción del Proyecto</mat-label>
+          <input matInput [(ngModel)]="newProject.description" placeholder="Ej: Sistema de gestión de ventas" required>
+        </mat-form-field>
+      </div>
+      <div class="dialog-actions">
+        <button mat-button (click)="closeCreateProjectDialog()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="confirmCreateProject()" [disabled]="!newProject.description">
+          Crear Proyecto
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diálogo para crear sprint -->
+  <div class="assign-dialog-overlay" *ngIf="showCreateSprintDialog" (click)="closeCreateSprintDialog()">
+    <div class="assign-dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Crear Nuevo Sprint</h3>
+        <button mat-icon-button (click)="closeCreateSprintDialog()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="dialog-content">
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Proyecto</mat-label>
+          <mat-select [(ngModel)]="newSprint.idProject" required>
+            <mat-option *ngFor="let project of availableProjects" [value]="project.idProject">
+              {{ project.description }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Número de Sprint</mat-label>
+          <input matInput type="number" [(ngModel)]="newSprint.nroSprint" placeholder="Ej: 1" required>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Descripción</mat-label>
+          <input matInput [(ngModel)]="newSprint.description" placeholder="Ej: Sprint de desarrollo inicial" required>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Fecha de Inicio</mat-label>
+          <input matInput [matDatepicker]="startPicker" [(ngModel)]="newSprint.startDate" placeholder="Selecciona fecha">
+          <mat-datepicker-toggle matSuffix [for]="startPicker"></mat-datepicker-toggle>
+          <mat-datepicker #startPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="full-width">
+          <mat-label>Fecha de Fin</mat-label>
+          <input matInput [matDatepicker]="endPicker" [(ngModel)]="newSprint.endDate" placeholder="Selecciona fecha">
+          <mat-datepicker-toggle matSuffix [for]="endPicker"></mat-datepicker-toggle>
+          <mat-datepicker #endPicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      <div class="dialog-actions">
+        <button mat-button (click)="closeCreateSprintDialog()">Cancelar</button>
+        <button mat-raised-button color="primary" (click)="confirmCreateSprint()" 
+                [disabled]="!newSprint.nroSprint || !newSprint.description || !newSprint.idProject">
+          Crear Sprint
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

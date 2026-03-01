@@ -1,0 +1,150 @@
+<div class="issue-detail-dialog">
+  <div class="dialog-header">
+    <h2 mat-dialog-title>
+      <mat-icon class="header-icon">assignment</mat-icon>
+      Detalles del Issue
+    </h2>
+    <button mat-icon-button class="close-button" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="dialog-content">
+    <!-- Información principal del issue -->
+    <div class="issue-info-section">
+      <div class="info-row">
+        <div class="info-label">
+          <mat-icon>title</mat-icon>
+          <strong>Título:</strong>
+        </div>
+        <div class="info-value">{{ data.issue.title }}</div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <mat-icon>description</mat-icon>
+          <strong>Descripción:</strong>
+        </div>
+        <div class="info-value description-text">{{ data.issue.description }}</div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <mat-icon>flag</mat-icon>
+          <strong>Prioridad:</strong>
+        </div>
+        <div class="info-value">
+          <span class="priority-badge" [ngClass]="getPriorityClass(data.issue.issuePriority)">
+            {{ getPriorityLabel(data.issue.issuePriority) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-row" *ngIf="data.issue.typeIssueDescription">
+        <div class="info-label">
+          <mat-icon>category</mat-icon>
+          <strong>Tipo de issue:</strong>
+        </div>
+        <div class="info-value">
+          <span class="type-badge">{{ data.issue.typeIssueDescription }}</span>
+        </div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <mat-icon>person</mat-icon>
+          <strong>Asignado a:</strong>
+        </div>
+        <div class="info-value">{{ supervisorName || 'Cargando...' }}</div>
+      </div>
+
+      <div class="info-row">
+        <div class="info-label">
+          <mat-icon>schedule</mat-icon>
+          <strong>Estado:</strong>
+        </div>
+        <div class="info-value">
+          <span class="status-badge" [ngClass]="'status-' + data.issue.issueStataus">
+            {{ data.issue.issueStataus === 'todo' ? 'Por hacer' : 
+               data.issue.issueStataus === 'inprogress' ? 'En progreso' : 'Completado' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-row" *ngIf="data.issue.issueCreateDate">
+        <div class="info-label">
+          <mat-icon>event</mat-icon>
+          <strong>Fecha de creación:</strong>
+        </div>
+        <div class="info-value">{{ formatDate(data.issue.issueCreateDate) }}</div>
+      </div>
+    </div>
+
+    <!-- Sección de comentarios -->
+    <mat-divider class="section-divider"></mat-divider>
+
+    <div class="comments-section">
+      <h3 class="section-title">
+        <mat-icon>comment</mat-icon>
+        Comentarios ({{ comments.length }})
+      </h3>
+
+      <!-- Lista de comentarios -->
+      <div class="comments-list" *ngIf="comments.length > 0">
+        <mat-card class="comment-card" *ngFor="let comment of comments">
+          <div class="comment-header">
+            <div class="comment-author">
+              <mat-icon class="author-icon">account_circle</mat-icon>
+              <strong>{{ comment.userName }}</strong>
+            </div>
+            <div class="comment-date">
+              <mat-icon class="date-icon">access_time</mat-icon>
+              {{ formatDate(comment.createDate) }}
+            </div>
+          </div>
+          <div class="comment-text">{{ comment.description }}</div>
+        </mat-card>
+      </div>
+
+      <div class="no-comments" *ngIf="comments.length === 0 && !isLoadingComments">
+        <mat-icon>chat_bubble_outline</mat-icon>
+        <p>No hay comentarios aún.</p>
+      </div>
+
+      <div class="loading-comments" *ngIf="isLoadingComments">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Cargando comentarios...</p>
+      </div>
+
+      <!-- Formulario para agregar comentario -->
+      <div class="add-comment-section">
+        <h4 class="add-comment-title">Agregar comentario</h4>
+        <form [formGroup]="commentForm" (ngSubmit)="addComment()">
+          <mat-form-field appearance="outline" class="comment-input">
+            <mat-label>Escribe tu comentario aquí</mat-label>
+            <textarea 
+              matInput 
+              formControlName="commentText" 
+              rows="3" 
+              placeholder="Ingresa tu comentario aquí..."></textarea>
+            <mat-hint>Comparte tus ideas, actualizaciones o preguntas</mat-hint>
+          </mat-form-field>
+          <div class="comment-actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit" 
+              [disabled]="commentForm.invalid">
+              <mat-icon>send</mat-icon>
+              Enviar comentario
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="dialog-actions">
+    <button mat-raised-button (click)="close()">Cerrar</button>
+  </mat-dialog-actions>
+</div>

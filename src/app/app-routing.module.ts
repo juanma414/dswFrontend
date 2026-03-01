@@ -6,6 +6,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { UserManagementComponent } from './admin/user-management/user-management.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
+import { BacklogComponent } from './backlog/backlog.component';
 
 const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -13,6 +14,7 @@ const routes: Routes = [
   { path: 'todo', component: TodoComponent, canActivate: [AuthGuard] },
   { path: 'dashboard', component: DashboardComponent, canActivate: [AuthGuard, AdminGuard] },
   { path: 'admin/users', component: UserManagementComponent, canActivate: [AuthGuard, AdminGuard] },
+  { path: 'admin/backlog', component: BacklogComponent, canActivate: [AuthGuard, AdminGuard] },
   { path: '**', redirectTo: '/login' }
 ];
 

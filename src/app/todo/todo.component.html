@@ -28,6 +28,16 @@
                                 </mat-select>
                             </mat-form-field>
                         </div>
+                        <div class="mb-3 mx-2">
+                            <mat-form-field appearance="outline" class="priority-field">
+                                <mat-label>Tipo de Issue</mat-label>
+                                <mat-select formControlName="typeIssue">
+                                    <mat-option *ngFor="let type of availableTypeIssues" [value]="type.typeIssueId">
+                                        {{ type.typeIssueDescription }}
+                                    </mat-option>
+                                </mat-select>
+                            </mat-form-field>
+                        </div>
                         <button *ngIf="!isEditEnabled" (click)="addTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Add</button>
                         <button *ngIf="isEditEnabled" (click)="updateTask()" type="button" [disabled]="todoForm.invalid" class="btn btn-primary mb-3 mx-2">Update</button>
 
@@ -49,7 +59,7 @@
                               class="example-list"
                               (cdkDropListDropped)="drop($event)">
                                 <div class="example-box" *ngFor="let item of tasks; let i = index" cdkDrag>
-                                    <div>
+                                    <div class="issue-content" (click)="openIssueDetail(item)">
                                         <h5 class="task-title">{{item.title}}</h5>
                                         <p>{{item.description}}</p>
                                         <div class="task-meta">
@@ -86,7 +96,7 @@
                               class="example-list"
                               (cdkDropListDropped)="drop($event)">
                                 <div class="example-box" *ngFor="let item of inprogress; let i = index" cdkDrag>
-                                    <div>
+                                    <div class="issue-content" (click)="openIssueDetail(item)">
                                         <h5 class="task-title">{{item.title}}</h5>
                                         <p>{{item.description}}</p>
                                         <div class="task-meta">
@@ -120,7 +130,7 @@
                           class="example-list"
                           (cdkDropListDropped)="drop($event)">
                             <div class="example-box" *ngFor="let item of done; let i = index" cdkDrag>
-                                <div>
+                                <div class="issue-content" (click)="openIssueDetail(item)">
                                     <h5 class="task-title">{{item.title}}</h5>
                                     <p>{{item.description}}</p>
                                     <div class="task-meta">

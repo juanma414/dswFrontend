@@ -1,16 +1,21 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import {FormGroup, FormBuilder, Validators} from '@angular/forms';
 import { ITask } from '../model/task';
 import { ApiService } from '../services/api.service';
 import { AuthService } from '../services/auth.service';
+import { ProjectSprintService } from '../services/project-sprint.service';
+import { Project, Sprint } from '../model/project';
+import { Subscription } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
+import { IssueDetailDialogComponent } from './issue-detail-dialog.component';
 
 @Component({
   selector: 'app-todo',
   templateUrl: './todo.component.html',
   styleUrls: ['./todo.component.scss']
 })
-export class TodoComponent {
+export class TodoComponent implements OnInit, OnDestroy {
 
   todoForm !: FormGroup;
   tasks : ITask [] = [];
@@ -20,26 +25,68 @@ export class TodoComponent {
   isEditEnabled:boolean = false;
 
   issues : any[] = [];
+  allIssues: ITask[] = []; // Todos los issues sin filtrar
   
   // Propiedades para asignación de usuarios
   availableUsers: any[] = [];
   editingIssue: any = null;
   isAssignmentModalOpen: boolean = false;
+  
+  // Tipos de issue disponibles
+  availableTypeIssues: any[] = [];
+
+  // Filtros de proyecto y sprint
+  selectedProject: Project | null = null;
+  selectedSprint: Sprint | null = null;
+  private projectSubscription?: Subscription;
+  private sprintSubscription?: Subscription;
 
   constructor(
     private fb: FormBuilder, 
     private apiService: ApiService,
-    private authService: AuthService
+    private authService: AuthService,
+    private projectSprintService: ProjectSprintService,
+    public dialog: MatDialog
   ) {}
 
   ngOnInit(): void{
+    // Cargar usuarios primero, luego los issues
+    this.loadUsers();
+    this.loadTypeIssues();
     this.loadIssues();
-    this.loadUsers(); // Cargar usuarios disponibles
+    
     this.todoForm = this.fb.group({
       title: ['', Validators.required],
       description: ['', Validators.required],
-      priority: ['medium', Validators.required] // Valor por defecto: media
-    })
+      priority: ['medium', Validators.required], // Valor por defecto: media
+      typeIssue: ['', Validators.required] // Tipo de issue es obligatorio
+    });
+
+    // Suscribirse a cambios de proyecto
+    this.projectSubscription = this.projectSprintService.selectedProject$.subscribe(
+      (project) => {
+        this.selectedProject = project;
+        this.applyFilters();
+      }
+    );
+
+    // Suscribirse a cambios de sprint
+    this.sprintSubscription = this.projectSprintService.selectedSprint$.subscribe(
+      (sprint) => {
+        this.selectedSprint = sprint;
+        this.applyFilters();
+      }
+    );
+  }
+
+  ngOnDestroy(): void {
+    // Limpiar suscripciones
+    if (this.projectSubscription) {
+      this.projectSubscription.unsubscribe();
+    }
+    if (this.sprintSubscription) {
+      this.sprintSubscription.unsubscribe();
+    }
   }
 
   // Cargar todos los issues desde la API
@@ -53,26 +100,31 @@ export class TodoComponent {
         console.log('Issues extraídos:', issues);
         
         if (issues && Array.isArray(issues)) {
-          // Mapear campos del backend al frontend y separar por status
-          const mappedIssues = issues.map((issue: any) => {
+          // Mapear campos del backend al frontend
+          this.allIssues = issues.map((issue: any) => {
             console.log('Issue individual del backend:', issue);
             return {
               issueId: issue.issueId,
               title: issue.title || issue.issueDescription || 'Sin título',
               description: issue.issueDescription || issue.description || 'Sin descripción',
               issueStataus: issue.issueStataus,
-              issueSupervisor: issue.issueSupervisor, // ¡AGREGAR ESTE CAMPO!
-              issuePriority: issue.issuePriority || 'medium' // Agregar prioridad
+              issueSupervisor: issue.issueSupervisor,
+              issuePriority: issue.issuePriority || 'medium',
+              // MikroORM devuelve las relaciones como objetos, extraer los IDs
+              idProject: issue.project?.projectId || issue.idProject,
+              idSprint: issue.sprint?.idSprint || issue.idSprint,
+              typeIssueId: issue.typeIssue?.typeIssueId, // ID del tipo de issue
+              typeIssueDescription: issue.typeIssue?.typeIssueDescription // Descripción del tipo
             };
           });
 
-          this.tasks = mappedIssues.filter((issue: any) => issue.issueStataus === 'todo');
-          this.inprogress = mappedIssues.filter((issue: any) => issue.issueStataus === 'inprogress');
-          this.done = mappedIssues.filter((issue: any) => issue.issueStataus === 'done');
+          // Aplicar filtros iniciales
+          this.applyFilters();
           
-          console.log('Tasks cargadas:', this.tasks);
-          console.log('In Progress cargadas:', this.inprogress);
-          console.log('Done cargadas:', this.done);
+          console.log('All issues cargados:', this.allIssues);
+          console.log('Tasks filtradas:', this.tasks);
+          console.log('In Progress filtradas:', this.inprogress);
+          console.log('Done filtradas:', this.done);
         } else {
           console.error('Issues no es un array:', issues);
         }
@@ -81,6 +133,44 @@ export class TodoComponent {
         console.error('Error loading issues:', error);
       }
     });
+  }
+
+  // Aplicar filtros de proyecto y sprint
+  applyFilters(): void {
+    let filtered = [...this.allIssues];
+
+    console.log('=== APLICANDO FILTROS ===');
+    console.log('Total de issues:', filtered.length);
+    console.log('Proyecto seleccionado:', this.selectedProject);
+    console.log('Sprint seleccionado:', this.selectedSprint);
+
+    // Filtrar por proyecto si está seleccionado
+    if (this.selectedProject) {
+      console.log('Filtrando por proyecto ID:', this.selectedProject.idProject);
+      filtered = filtered.filter(issue => {
+        console.log(`Issue ${issue.issueId}: idProject=${issue.idProject}, match=${issue.idProject === this.selectedProject!.idProject}`);
+        return issue.idProject === this.selectedProject!.idProject;
+      });
+      console.log('Issues después de filtrar por proyecto:', filtered.length);
+    }
+
+    // Filtrar por sprint si está seleccionado
+    if (this.selectedSprint) {
+      console.log('Filtrando por sprint ID:', this.selectedSprint.idSprint);
+      filtered = filtered.filter(issue => {
+        console.log(`Issue ${issue.issueId}: idSprint=${issue.idSprint}, match=${issue.idSprint === this.selectedSprint!.idSprint}`);
+        return issue.idSprint === this.selectedSprint!.idSprint;
+      });
+      console.log('Issues después de filtrar por sprint:', filtered.length);
+    }
+
+    // Separar por estado
+    this.tasks = filtered.filter((issue: any) => issue.issueStataus === 'todo');
+    this.inprogress = filtered.filter((issue: any) => issue.issueStataus === 'inprogress');
+    this.done = filtered.filter((issue: any) => issue.issueStataus === 'done');
+
+    console.log('Resultado final - TODO:', this.tasks.length, 'IN PROGRESS:', this.inprogress.length, 'DONE:', this.done.length);
+    console.log('=== FIN FILTROS ===');
   }
 
   // Agregar nuevo issue
@@ -97,12 +187,14 @@ export class TodoComponent {
       return;
     }
 
+    const currentUser = this.authService.getCurrentUser();
     const newIssue = {
       issueDescription: `${this.todoForm.value.title}: ${this.todoForm.value.description}`,
       issueStataus: 'todo',
       issueCreateDate: new Date(),
       issuePriority: this.todoForm.value.priority || 'medium',
-      issueSupervisor: 'Usuario'
+      issueSupervisor: currentUser?.userId?.toString() || 'Usuario',
+      typeIssue: parseInt(this.todoForm.value.typeIssue) // ID del tipo de issue seleccionado
     };
 
     console.log('Enviando nuevo issue:', newIssue);
@@ -140,6 +232,7 @@ export class TodoComponent {
     this.todoForm.controls['title'].setValue(item.title);
     this.todoForm.controls['description'].setValue(item.description);
     this.todoForm.controls['priority'].setValue(item.issuePriority || 'medium');
+    this.todoForm.controls['typeIssue'].setValue(item.typeIssueId || '');
     this.updateIndex = i;
     this.isEditEnabled = true;
   }
@@ -150,7 +243,8 @@ export class TodoComponent {
       title: this.todoForm.value.title,
       issueDescription: this.todoForm.value.description,
       issuePriority: this.todoForm.value.priority,
-      issueStataus: this.tasks[this.updateIndex].issueStataus
+      issueStataus: this.tasks[this.updateIndex].issueStataus,
+      typeIssue: parseInt(this.todoForm.value.typeIssue)
     };
 
     const issueId = this.tasks[this.updateIndex].issueId;
@@ -406,14 +500,37 @@ export class TodoComponent {
       return 'Sin Asignar';
     }
 
-    // Mapeo de nombres conocidos
+    // Verificar si es un número (userId)
+    const userId = parseInt(issueSupervisor);
+    if (!isNaN(userId) && userId.toString() === issueSupervisor) {
+      // Es un ID de usuario, buscar en la lista de usuarios disponibles
+      console.log('DEBUG - Buscando usuario con ID:', userId, 'en', this.availableUsers.length, 'usuarios');
+      
+      const user = this.availableUsers.find(u => u.userId === userId);
+      if (user) {
+        const fullName = `${user.userName} ${user.userLastName}`;
+        console.log('DEBUG - Usuario encontrado:', fullName);
+        return fullName;
+      }
+      
+      // Si no se encuentra en availableUsers, verificar si es el usuario actual
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser && currentUser.userId === userId) {
+        return `${currentUser.userName} ${currentUser.userLastName}`;
+      }
+      
+      // Si no se encuentra, mostrar mensaje genérico
+      console.log('DEBUG - Usuario no encontrado con ID:', userId);
+      return `Usuario #${userId}`;
+    }
+
+    // Mapeo de nombres conocidos para compatibilidad con datos anteriores
     const nameMap: { [key: string]: string } = {
       'Admin': 'Administrador',
       'Juan Perez': 'Juan Pérez',
       'Designer': 'Diseñador UI/UX',
       'Backend Dev': 'Desarrollador Backend',
-      'Usuario': 'Usuario General',
-      '2': 'Usuario ID 2'
+      'Usuario': 'Usuario General'
     };
 
     const result = nameMap[issueSupervisor] || issueSupervisor;
@@ -429,5 +546,43 @@ export class TodoComponent {
       'high': '🔴 Alta'
     };
     return priorityMap[priority] || '🟡 Media';
+  }
+
+  // Abrir diálogo con detalles del issue
+  openIssueDetail(issue: ITask): void {
+    const dialogRef = this.dialog.open(IssueDetailDialogComponent, {
+      width: '800px',
+      maxWidth: '90vw',
+      maxHeight: '90vh',
+      data: { issue }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      // Opcional: recargar issues si es necesario
+      // this.loadIssues();
+    });
+  }
+
+  // Cargar tipos de issue disponibles
+  loadTypeIssues(): void {
+    console.log('DEBUG - Cargando tipos de issue...');
+    this.apiService.getTypeIssues().subscribe({
+      next: (response) => {
+        console.log('DEBUG - Respuesta de tipos de issue:', response);
+        this.availableTypeIssues = response.data || response;
+        console.log('DEBUG - Tipos de issue procesados:', this.availableTypeIssues);
+        
+        // Si no hay tipos de issue, crear uno por defecto
+        if (this.availableTypeIssues.length === 0) {
+          console.warn('No hay tipos de issue disponibles');
+          this.availableTypeIssues = [{ typeIssueId: 1, typeIssueDescription: 'Tarea' }];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading type issues:', error);
+        // Usar un tipo de issue por defecto en caso de error
+        this.availableTypeIssues = [{ typeIssueId: 1, typeIssueDescription: 'Tarea' }];
+      }
+    });
   }
 }
