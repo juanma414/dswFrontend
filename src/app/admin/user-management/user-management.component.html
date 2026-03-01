@@ -52,9 +52,23 @@
               <mat-form-field appearance="outline" class="half-width">
                 <mat-label>Rol</mat-label>
                 <mat-select formControlName="userRol">
-                  <mat-option value="developer">Developer</mat-option>
+
+                  <!-- Esto se puede mejorar con una lista/tabla custom de roles para evitar hardcodear los valores en el HTML-->
+                  <!-- <mat-option value="developer">Developer</mat-option> -->                  
+
                   <mat-option value="administrator">Administrator</mat-option>
-                  <mat-option value="designer">Designer</mat-option>
+                  <mat-option value="analist">Analista</mat-option>
+                  <mat-option value="automation">Automation Specialist</mat-option>
+                  <mat-option value="developerBack">Desarrollador Backend</mat-option>
+                  <mat-option value="developerFront">Desarrollador Frontend</mat-option>
+                  <mat-option value="developerFullStack">Desarrollador Full Stack</mat-option>
+                  <mat-option value="designer">Diseñador</mat-option> 
+                  <mat-option value="other">Otro</mat-option>
+                  <mat-option value="po">PO</mat-option>
+                  <mat-option value="projectManager">Project Manager</mat-option>
+                  <mat-option value="qa">QA</mat-option>
+                  <mat-option value="scrumMaster">Scrum Master</mat-option>
+
                 </mat-select>
                 <mat-error *ngIf="userForm.get('userRol')?.hasError('required')">
                   El rol es requerido

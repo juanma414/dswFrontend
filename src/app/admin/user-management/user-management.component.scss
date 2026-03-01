@@ -112,15 +112,65 @@
     color: white;
   }
   
-  &.role-developer {
-    background-color: #2196f3;
-    color: white;
-  }
-  
-  &.role-designer {
-    background-color: #ff9800;
-    color: white;
-  }
+  &.role-analist {
+  background-color: #9c27b0;
+  color: white;
+}
+
+&.role-automation {
+  background-color: #ff9800;
+  color: white;
+}
+
+&.role-developerBack {
+  background-color: #3f51b5;
+  color: white;
+}
+
+&.role-developerFront {
+  background-color: #21d0f3;
+  color: rgb(0, 0, 0);
+}
+
+&.role-developerFullStack {
+  background-color: #188c0b;
+  color: white;
+}
+
+&.role-designer {
+  background-color: #e91e63;
+  color: white;
+}
+
+&.role-other {
+  background-color: #9e9e9e;
+  color: white;
+}
+
+&.role-po {
+  background-color: #e719e0;
+  color: white;
+}
+
+&.role-projectManager {
+  background-color: #c8f026;
+  color: rgb(0, 0, 0);
+}
+
+&.role-qa {
+  background-color: #720c82;
+  color: white;
+}
+
+&.role-scrumMaster {
+  background-color: #104f83;
+  color: white;
+}
+
+&.role-other {
+  background-color: #b50ca4;
+  color: white;
+}
 }
 
 .user-actions {
