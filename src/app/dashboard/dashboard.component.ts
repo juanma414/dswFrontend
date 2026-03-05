@@ -84,12 +84,27 @@ export class DashboardComponent implements OnInit {
     this.apiService.getIssues().subscribe({
       next: (response) => {
         console.log('Dashboard - Issues cargados:', response);
-        // MikroORM devuelve las relaciones como objetos, necesitamos extraer los IDs
-        this.allIssues = (response.issueClass || response.data || response).map((issue: any) => ({
-          ...issue,
-          idProject: issue.project?.projectId || issue.idProject,
-          idSprint: issue.sprint?.idSprint || issue.idSprint
-        }));
+        // MikroORM devuelve las relaciones como objetos, necesitamos extraer los IDs y normalizar los datos
+        this.allIssues = (response.issueClass || response.data || response).map((issue: any) => {
+          // Extraer datos del usuario relacionado
+          const user = issue.supervisor || issue.user || {};
+          const userName = user.userName || '';
+          const userLastName = user.userLastName || '';
+          const fullName = (userName + ' ' + userLastName).trim();
+
+          return {
+            ...issue,
+            idProject: issue.project?.projectId || issue.idProject,
+            idSprint: issue.sprint?.idSprint || issue.idSprint,
+            // Normalizar título y descripción
+            title: issue.title || issue.issueTitle || issue.issueDescription || '',
+            description: issue.description || issue.issueDescription || '',
+            // Normalizar supervisor - extraer el ID si es un objeto User
+            issueSupervisor: user.userId || issue.issueSupervisor,
+            // Guardar el nombre completo del usuario (userName + userLastName) para búsqueda
+            supervisorName: fullName || 'Sin Asignar'
+          };
+        });
         this.filteredIssues = [...this.allIssues];
         
         this.calculateStatistics();
@@ -186,12 +201,14 @@ export class DashboardComponent implements OnInit {
     this.filteredIssues = this.allIssues.filter(issue => {
       let passesFilter = true;
 
-      // Filtro por texto (título o descripción)
+      // Filtro por texto (título, descripción o nombre del usuario asignado)
       if (filterValues.searchText) {
         const searchLower = filterValues.searchText.toLowerCase();
-        const titleMatch = (issue.title || issue.issueDescription || '').toLowerCase().includes(searchLower);
-        const descMatch = (issue.description || issue.issueDescription || '').toLowerCase().includes(searchLower);
-        passesFilter = passesFilter && (titleMatch || descMatch);
+        const titleMatch = (issue.title || '').toLowerCase().includes(searchLower);
+        const descMatch = (issue.description || '').toLowerCase().includes(searchLower);
+        // Buscar en el nombre completo del supervisor (userName + userLastName)
+        const supervisorNameMatch = (issue.supervisorName || '').toLowerCase().includes(searchLower);
+        passesFilter = passesFilter && (titleMatch || descMatch || supervisorNameMatch);
       }
 
       // Filtro por fecha de inicio
@@ -210,7 +227,7 @@ export class DashboardComponent implements OnInit {
 
       // Filtro por usuario
       if (filterValues.userFilter) {
-        passesFilter = passesFilter && (issue.issueSupervisor || '').includes(filterValues.userFilter);
+        passesFilter = passesFilter && (issue.issueSupervisor || '').toString().includes(filterValues.userFilter);
       }
 
       // Filtro por proyecto
@@ -324,11 +341,11 @@ export class DashboardComponent implements OnInit {
   exportToCsv(): void {
     const csvData = this.filteredIssues.map(issue => ({
       'ID': issue.issueId,
-      'Título': issue.title || issue.issueDescription,
-      'Descripción': issue.description || issue.issueDescription,
+      'Título': issue.title,
+      'Descripción': issue.description,
       'Estado': issue.issueStataus,
       'Prioridad': issue.issuePriority,
-      'Asignado a': issue.issueSupervisor,
+      'Asignado a': this.getUserDisplayName(issue.issueSupervisor),
       'Fecha Creación': new Date(issue.issueCreateDate).toLocaleDateString(),
       'Fecha Finalización': issue.issueEndDate ? new Date(issue.issueEndDate).toLocaleDateString() : 'N/A'
     }));
