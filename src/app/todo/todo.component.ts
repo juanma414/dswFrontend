@@ -50,11 +50,6 @@ export class TodoComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void{
-    // Cargar usuarios primero, luego los issues
-    this.loadUsers();
-    this.loadTypeIssues();
-    this.loadIssues();
-    
     this.todoForm = this.fb.group({
       title: ['', Validators.required],
       description: ['', Validators.required],
@@ -77,6 +72,9 @@ export class TodoComponent implements OnInit, OnDestroy {
         this.applyFilters();
       }
     );
+
+    // Cargar datos - usuarios primero, luego el resto
+    this.loadUsersAndThenIssues();
   }
 
   ngOnDestroy(): void {
@@ -92,39 +90,119 @@ export class TodoComponent implements OnInit, OnDestroy {
   // Cargar todos los issues desde la API
   loadIssues(){
     this.apiService.getIssues().subscribe({
-      next: (response) => {
-        console.log('Respuesta completa del backend:', response);
-        
-        // El backend devuelve { messge: "...", issueClass: [...] }
-        const issues = response.issueClass || response.data || response;
-        console.log('Issues extraídos:', issues);
+      next: (issues) => {
+        console.log('=== Cargando issues desde API ===');
+        console.log('Total de issues:', issues?.length || 0);
         
         if (issues && Array.isArray(issues)) {
+          // Inspeccionar estructura completa del primer issue
+          if (issues.length > 0) {
+            console.log('\n📋 ESTRUCTURA DEL PRIMER ISSUE:');
+            console.log('Keys disponibles:', Object.keys(issues[0]));
+            console.log('JSON completo:', JSON.stringify(issues[0], null, 2));
+          }
+
           // Mapear campos del backend al frontend
-          this.allIssues = issues.map((issue: any) => {
-            console.log('Issue individual del backend:', issue);
+          this.allIssues = issues.map((issue: any, index: number) => {
+            console.log(`\n--- Issue ${index + 1} ---`);
+            
+            // El backend devuelve issueDescription como el contenido principal
+            // Si contiene ':', dividirlo en título y descripción
+            const fullDescription = issue.issueDescription || issue.title || 'Sin título';
+            let title = 'Sin título';
+            let description = 'Sin descripción';
+            
+            if (fullDescription.includes(':')) {
+              const parts = fullDescription.split(':');
+              title = parts[0].trim();
+              description = parts.slice(1).join(':').trim();
+            } else {
+              title = fullDescription;
+            }
+            
+            // Extraer supervisor - probar TODAS las posibilidades
+            let supervisorId: any = null;
+            let supervisorName = '';
+            
+            console.log('🔍 Buscando supervisor en issue...');
+            console.log('  - issue.supervisorData:', issue.supervisorData);
+            console.log('  - issue.issueSupervisor:', issue.issueSupervisor);
+            
+            // 1. Si viene en supervisorData (nueva estructura)
+            if (issue.supervisorData && typeof issue.supervisorData === 'object') {
+              supervisorId = issue.supervisorData.userId;
+              supervisorName = `${issue.supervisorData.userName || ''} ${issue.supervisorData.userLastName || ''}`.trim();
+              
+              // Si solo tenemos el nombre (sin apellido), buscar en availableUsers para obtener datos completos
+              if (!issue.supervisorData.userLastName && supervisorId && this.availableUsers.length > 0) {
+                const fullUser = this.availableUsers.find(u => u.userId === supervisorId);
+                if (fullUser) {
+                  supervisorName = `${fullUser.userName || ''} ${fullUser.userLastName || ''}`.trim();
+                  console.log('✓ Nombre completo encontrado en availableUsers:', supervisorName);
+                }
+              }
+              
+              console.log('✓ Supervisor encontrado en issue.supervisorData:', { supervisorId, supervisorName });
+            } 
+            // 2. Si en la relación viene el usuario completo (issue.supervisor)
+            else if (issue.supervisor && typeof issue.supervisor === 'object') {
+              supervisorId = issue.supervisor.userId;
+              supervisorName = `${issue.supervisor.userName || ''} ${issue.supervisor.userLastName || ''}`.trim();
+              console.log('✓ Supervisor encontrado en issue.supervisor:', { supervisorId, supervisorName });
+            } 
+            // 3. Si viene en issue.user
+            else if (issue.user && typeof issue.user === 'object') {
+              supervisorId = issue.user.userId;
+              supervisorName = `${issue.user.userName || ''} ${issue.user.userLastName || ''}`.trim();
+              console.log('✓ Supervisor encontrado en issue.user:', { supervisorId, supervisorName });
+            }
+            // 4. Si viene en issue.assignedTo
+            else if (issue.assignedTo && typeof issue.assignedTo === 'object') {
+              supervisorId = issue.assignedTo.userId;
+              supervisorName = `${issue.assignedTo.userName || ''} ${issue.assignedTo.userLastName || ''}`.trim();
+              console.log('✓ Supervisor encontrado en issue.assignedTo:', { supervisorId, supervisorName });
+            }
+            // 5. Si viene como issueSupervisor (solo ID)
+            else if (issue.issueSupervisor) {
+              supervisorId = issue.issueSupervisor;
+              console.log('✓ Supervisor ID encontrado en issue.issueSupervisor:', supervisorId);
+            }
+            // 6. Si viene como idSupervisor (solo ID)
+            else if (issue.idSupervisor) {
+              supervisorId = issue.idSupervisor;
+              console.log('✓ Supervisor ID encontrado en issue.idSupervisor:', supervisorId);
+            }
+            // 7. Si viene como supervisorId (solo ID)
+            else if (issue.supervisorId) {
+              supervisorId = issue.supervisorId;
+              console.log('✓ Supervisor ID encontrado en issue.supervisorId:', supervisorId);
+            }
+            // 8. Si viene como userId (solo ID)
+            else if (issue.userId) {
+              supervisorId = issue.userId;
+              console.log('✓ Supervisor ID encontrado en issue.userId:', supervisorId);
+            }
+            else {
+              console.log('⚠️ NO se encontró supervisor en ningún campo');
+            }
+            
             return {
               issueId: issue.issueId,
-              title: issue.title || issue.issueDescription || 'Sin título',
-              description: issue.issueDescription || issue.description || 'Sin descripción',
-              issueStataus: issue.issueStataus,
-              issueSupervisor: issue.issueSupervisor,
+              title: title,
+              description: description,
+              issueStataus: issue.issueStataus || issue.status,
+              issueSupervisor: supervisorId,
+              supervisorName: supervisorName, // Nombre completo si viene del backend
               issuePriority: issue.issuePriority || 'medium',
-              // MikroORM devuelve las relaciones como objetos, extraer los IDs
-              idProject: issue.project?.projectId || issue.idProject,
-              idSprint: issue.sprint?.idSprint || issue.idSprint,
-              typeIssueId: issue.typeIssue?.typeIssueId, // ID del tipo de issue
-              typeIssueDescription: issue.typeIssue?.typeIssueDescription // Descripción del tipo
+              idProject: issue.project?.projectId || issue.projectId || issue.idProject,
+              idSprint: issue.sprint?.idSprint || issue.sprintId || issue.idSprint,
+              typeIssueId: issue.typeIssueId || issue.typeIssue,
+              typeIssueDescription: issue.typeIssueDescription
             };
           });
 
-          // Aplicar filtros iniciales
           this.applyFilters();
-          
-          console.log('All issues cargados:', this.allIssues);
-          console.log('Tasks filtradas:', this.tasks);
-          console.log('In Progress filtradas:', this.inprogress);
-          console.log('Done filtradas:', this.done);
+          console.log('\n=== Issues procesados correctamente ===');
         } else {
           console.error('Issues no es un array:', issues);
         }
@@ -199,19 +277,17 @@ export class TodoComponent implements OnInit, OnDestroy {
 
     console.log('Enviando nuevo issue:', newIssue);
 
-    this.apiService.createIssue(newIssue).subscribe({
-      next: (response) => {
-        console.log('Respuesta del servidor:', response);
-        const issue = response.data || response;
+    this.apiService.createIssue(newIssue as any).subscribe({
+      next: (issue) => {
         console.log('Issue creado:', issue);
         
         // Mapear campos del backend al frontend
-        const mappedIssue = {
+        const mappedIssue: ITask = {
           issueId: issue.issueId,
           title: this.todoForm.value.title,
           description: this.todoForm.value.description,
           issueStataus: issue.issueStataus || 'todo',
-          issueSupervisor: issue.issueSupervisor || 'Usuario', // ¡AGREGAR ESTE CAMPO!
+          issueSupervisor: issue.issueSupervisor,
           issuePriority: issue.issuePriority || this.todoForm.value.priority || 'medium'
         };
         
@@ -249,11 +325,10 @@ export class TodoComponent implements OnInit, OnDestroy {
 
     const issueId = this.tasks[this.updateIndex].issueId;
     if (issueId) {
-      this.apiService.updateIssue(issueId, updatedIssue).subscribe({
-        next: (response) => {
-          const issue = response.data || response;
-          this.tasks[this.updateIndex].title = issue.title || issue.issueDescription;
-          this.tasks[this.updateIndex].description = issue.issueDescription;
+      this.apiService.updateIssue(issueId, updatedIssue as any).subscribe({
+        next: (issue) => {
+          this.tasks[this.updateIndex].title = issue.title || issue.description;
+          this.tasks[this.updateIndex].description = issue.description;
           this.tasks[this.updateIndex].issuePriority = issue.issuePriority;
           this.todoForm.reset();
           this.updateIndex = undefined;
@@ -352,10 +427,9 @@ export class TodoComponent implements OnInit, OnDestroy {
     if (confirm('¿Marcar este issue como cerrado? Desaparecerá del tablero y se registrará la fecha de cierre.')) {
       if (issue.issueId) {
         this.apiService.updateIssueStatus(issue.issueId, 'closed').subscribe({
-          next: (response) => {
-            console.log('Issue cerrado:', response);
-            const closedIssue = response.data || response;
-            const endDate = new Date(closedIssue.issueEndDate).toLocaleString();
+          next: (closedIssue) => {
+            console.log('Issue cerrado:', closedIssue);
+            const endDate = new Date(closedIssue.issueEndDate || new Date()).toLocaleString();
             this.done.splice(i, 1);
             console.log('Issue marcado como cerrado con fecha:', endDate);
             alert(`Issue cerrado exitosamente!\nFecha de cierre: ${endDate}`);
@@ -389,7 +463,7 @@ export class TodoComponent implements OnInit, OnDestroy {
       // Actualizar el estado en la API
       if (issue.issueId) {
         this.apiService.updateIssueStatus(issue.issueId, newStatus).subscribe({
-          next: (response) => {
+          next: (updatedIssue) => {
             transferArrayItem(
               event.previousContainer.data,
               event.container.data,
@@ -397,7 +471,6 @@ export class TodoComponent implements OnInit, OnDestroy {
               event.currentIndex
             );
             // Actualizar el estado local
-            const updatedIssue = response.data || response;
             event.container.data[event.currentIndex].issueStataus = updatedIssue.issueStataus;
           },
           error: (error) => {
@@ -412,21 +485,61 @@ export class TodoComponent implements OnInit, OnDestroy {
   // Verificar si el usuario actual es administrador
   isAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user && user.userRol === 'administrator';
+    return user ? user.userRol === 'administrator' : false;
   }
 
   // Cargar usuarios disponibles para asignación
   loadUsers(): void {
-    console.log('DEBUG - Cargando usuarios...');
+    console.log('DEBUG - Cargando usuarios desde loadUsers()...');
     this.apiService.getUsers().subscribe({
-      next: (response) => {
-        console.log('DEBUG - Respuesta de usuarios:', response);
-        this.availableUsers = response.usersClasses || response.data || response;
-        console.log('DEBUG - Usuarios procesados:', this.availableUsers);
+      next: (users) => {
+        console.log('DEBUG - Usuarios cargados en todo.component:', users);
+        console.log('DEBUG - Tipo de usuarios:', typeof users, 'Es array?', Array.isArray(users));
+        console.log('DEBUG - Cantidad de usuarios:', users?.length || 0);
+        
+        if (Array.isArray(users) && users.length > 0) {
+          this.availableUsers = users;
+          console.log('DEBUG - Usuarios asignados a availableUsers:', this.availableUsers);
+        } else {
+          console.warn('DEBUG - Usuarios vacío o no es array');
+          this.availableUsers = [];
+        }
+        
+        console.log('DEBUG - availableUsers final:', this.availableUsers);
       },
       error: (error) => {
         console.error('Error loading users:', error);
+        console.error('Error details:', error.error, error.message);
+        this.availableUsers = [];
         alert('Error al cargar usuarios: ' + (error.error?.message || error.message));
+      }
+    });
+  }
+
+  // Cargar usuarios primero, luego issues y tipos
+  loadUsersAndThenIssues(): void {
+    this.apiService.getUsers().subscribe({
+      next: (users) => {
+        console.log('DEBUG - Usuarios cargados, asignando a availableUsers...');
+        
+        if (Array.isArray(users) && users.length > 0) {
+          this.availableUsers = users;
+        } else {
+          this.availableUsers = [];
+        }
+        
+        console.log('DEBUG - availableUsers poblado con', this.availableUsers.length, 'usuarios');
+        
+        // Ahora cargar issues y tipos de issue
+        this.loadTypeIssues();
+        this.loadIssues();
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.availableUsers = [];
+        // Seguir cargando issues de todas formas
+        this.loadTypeIssues();
+        this.loadIssues();
       }
     });
   }
@@ -466,12 +579,14 @@ export class TodoComponent implements OnInit, OnDestroy {
     const fullName = `${userName} ${userLastName}`;
     console.log('DEBUG - Nombre completo:', fullName);
     
-    this.apiService.updateIssueAssignment(this.editingIssue.issueId, fullName).subscribe({
+    // Enviar el ID del usuario (userId), no el nombre
+    this.apiService.updateIssueAssignment(this.editingIssue.issueId, userId).subscribe({
       next: (response) => {
         console.log('DEBUG - Asignación actualizada:', response);
         
-        // Actualizar localmente
-        this.editingIssue.issueSupervisor = fullName;
+        // Actualizar localmente con el ID (como string, porque el backend lo espera así) y el nombre
+        this.editingIssue.issueSupervisor = userId.toString();
+        this.editingIssue.supervisorName = fullName;
         
         // Recargar issues para asegurar consistencia
         this.loadIssues();
@@ -492,50 +607,57 @@ export class TodoComponent implements OnInit, OnDestroy {
   }
 
   // Mapear issueSupervisor a nombre legible
-  getSupervisorDisplayName(issueSupervisor: string | undefined): string {
-    console.log('DEBUG - issueSupervisor recibido:', issueSupervisor, 'tipo:', typeof issueSupervisor);
-    
-    if (!issueSupervisor) {
-      console.log('DEBUG - issueSupervisor está vacío o undefined');
+  getSupervisorDisplayName(issue: ITask | string | number | undefined): string {
+    // Si recibe undefined o null
+    if (!issue) {
       return 'Sin Asignar';
     }
 
-    // Verificar si es un número (userId)
-    const userId = parseInt(issueSupervisor);
-    if (!isNaN(userId) && userId.toString() === issueSupervisor) {
-      // Es un ID de usuario, buscar en la lista de usuarios disponibles
-      console.log('DEBUG - Buscando usuario con ID:', userId, 'en', this.availableUsers.length, 'usuarios');
+    // Si recibe un objeto ITask
+    if (typeof issue === 'object' && issue !== null) {
+      const taskIssue = issue as ITask;
       
-      const user = this.availableUsers.find(u => u.userId === userId);
-      if (user) {
-        const fullName = `${user.userName} ${user.userLastName}`;
-        console.log('DEBUG - Usuario encontrado:', fullName);
-        return fullName;
+      // Retornar el nombre completo si está disponible (viene del backend)
+      if (taskIssue.supervisorName && taskIssue.supervisorName.trim() && taskIssue.supervisorName !== 'Sin Asignar') {
+        return taskIssue.supervisorName;
       }
       
-      // Si no se encuentra en availableUsers, verificar si es el usuario actual
-      const currentUser = this.authService.getCurrentUser();
-      if (currentUser && currentUser.userId === userId) {
-        return `${currentUser.userName} ${currentUser.userLastName}`;
+      // Si no hay nombre pero hay ID, buscar en availableUsers
+      if (taskIssue.issueSupervisor) {
+        const userId = typeof taskIssue.issueSupervisor === 'string' 
+          ? parseInt(taskIssue.issueSupervisor) 
+          : (taskIssue.issueSupervisor as number);
+        
+        if (!isNaN(userId)) {
+          const user = this.availableUsers.find(u => {
+            const userIdNum = typeof u.userId === 'string' ? parseInt(u.userId) : u.userId;
+            return userIdNum === userId;
+          });
+          
+          if (user) {
+            return `${user.userName || ''} ${user.userLastName || ''}`.trim();
+          }
+        }
       }
-      
-      // Si no se encuentra, mostrar mensaje genérico
-      console.log('DEBUG - Usuario no encontrado con ID:', userId);
-      return `Usuario #${userId}`;
     }
 
-    // Mapeo de nombres conocidos para compatibilidad con datos anteriores
-    const nameMap: { [key: string]: string } = {
-      'Admin': 'Administrador',
-      'Juan Perez': 'Juan Pérez',
-      'Designer': 'Diseñador UI/UX',
-      'Backend Dev': 'Desarrollador Backend',
-      'Usuario': 'Usuario General'
-    };
+    // Si recibe string o número, asumir que es solo el ID y buscar
+    if (typeof issue === 'string' || typeof issue === 'number') {
+      const userId = typeof issue === 'string' ? parseInt(issue) : (issue as number);
+      
+      if (!isNaN(userId)) {
+        const user = this.availableUsers.find(u => {
+          const userIdNum = typeof u.userId === 'string' ? parseInt(u.userId) : u.userId;
+          return userIdNum === userId;
+        });
+        
+        if (user) {
+          return `${user.userName || ''} ${user.userLastName || ''}`.trim();
+        }
+      }
+    }
 
-    const result = nameMap[issueSupervisor] || issueSupervisor;
-    console.log('DEBUG - resultado final:', result);
-    return result;
+    return 'Sin Asignar';
   }
 
   // Mapear prioridad a etiqueta legible
@@ -567,9 +689,9 @@ export class TodoComponent implements OnInit, OnDestroy {
   loadTypeIssues(): void {
     console.log('DEBUG - Cargando tipos de issue...');
     this.apiService.getTypeIssues().subscribe({
-      next: (response) => {
-        console.log('DEBUG - Respuesta de tipos de issue:', response);
-        this.availableTypeIssues = response.data || response;
+      next: (typeIssues) => {
+        console.log('DEBUG - Tipos de issue cargados:', typeIssues);
+        this.availableTypeIssues = typeIssues;
         console.log('DEBUG - Tipos de issue procesados:', this.availableTypeIssues);
         
         // Si no hay tipos de issue, crear uno por defecto

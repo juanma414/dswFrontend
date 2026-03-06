@@ -33,8 +33,8 @@ export class UserManagementComponent implements OnInit {
   loadUsers(): void {
     this.isLoading = true;
     this.userService.getAllUsers().subscribe({
-      next: (response) => {
-        this.users = response.usersClasses || [];
+      next: (users) => {
+        this.users = users;
         this.isLoading = false;
       },
       error: (error) => {

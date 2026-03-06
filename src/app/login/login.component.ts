@@ -41,13 +41,9 @@ export class LoginComponent implements OnInit {
       
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          console.log('Login exitoso:', response);
-          
-          // Guardar usuario en el AuthService
-          if (response.data) {
-            this.authService.setCurrentUser(response.data);
-          }
-          
+          console.log('Login exitoso');
+          // El auth.service ya guardó el token y actualizó el usuario
+          // Solo navegar al dashboard
           this.router.navigate(['/todo']);
           this.isLoading = false;
         },

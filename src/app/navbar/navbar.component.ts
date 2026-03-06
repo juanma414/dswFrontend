@@ -39,9 +39,9 @@ export class NavbarComponent implements OnInit {
     return user ? `${user.userName} ${user.userLastName}` : '';
   }
 
-  isAdmin(): boolean {
+  isAdmin(): boolean | null {
     const user = this.authService.getCurrentUser();
-    return user && user.userRol === 'administrator';
+    return user ? user.userRol === 'administrator' : false;
   }
 
   goToUserManagement(): void {
@@ -61,7 +61,7 @@ export class NavbarComponent implements OnInit {
     this.apiService.getProjects().subscribe({
       next: (response) => {
         console.log('Proyectos cargados desde API:', response);
-        this.projects = response.projectsClasses || response.projects || response.data || response;
+        this.projects = response.projectsClasses || [];
       },
       error: (error) => {
         console.error('Error loading projects:', error);
@@ -80,7 +80,7 @@ export class NavbarComponent implements OnInit {
     this.apiService.getSprintsByProject(projectId).subscribe({
       next: (response) => {
         console.log('Sprints cargados desde API:', response);
-        this.sprints = response.sprintsClasses || response.sprints || response.data || response;
+        this.sprints = response.sprintsClasses || [];
       },
       error: (error) => {
         console.error('Error loading sprints:', error);

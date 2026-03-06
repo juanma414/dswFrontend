@@ -7,9 +7,9 @@ export interface ITask {
     issueStataus?: string;
     issueCreateDate?: Date;
     issueEndDate?: Date;
-    issueSupervisor?: string;
+    issueSupervisor?: string | number; // ID del usuario
+    supervisorName?: string; // Nombre completo del supervisor desde el mapeo del backend
     issuePriority?: string;
-    supervisorName?: string; // Nombre completo del supervisor
     idProject?: number; // Proyecto al que pertenece
     idSprint?: number; // Sprint al que pertenece
     comments?: IComment[]; // Comentarios del issue

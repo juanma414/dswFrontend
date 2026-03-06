@@ -50,7 +50,9 @@ export class DashboardComponent implements OnInit {
     }
 
     this.initializeForm();
-    this.loadAllData();
+    
+    // Cargar datos - usuarios primero, luego el resto
+    this.loadUsersAndThenData();
   }
 
   initializeForm(): void {
@@ -71,25 +73,34 @@ export class DashboardComponent implements OnInit {
 
   isAdmin(): boolean {
     const user = this.authService.getCurrentUser();
-    return user && user.userRol === 'administrator';
+    return user ? user.userRol === 'administrator' : false;
   }
 
   loadAllData(): void {
     // Cargar proyectos
     this.loadProjects();
-    // Cargar usuarios
-    this.loadUsers();
     
     // Cargar todos los issues sin filtros para el dashboard
     this.apiService.getIssues().subscribe({
-      next: (response) => {
-        console.log('Dashboard - Issues cargados:', response);
+      next: (issues) => {
+        console.log('Dashboard - Issues cargados:', issues);
         // MikroORM devuelve las relaciones como objetos, necesitamos extraer los IDs y normalizar los datos
-        this.allIssues = (response.issueClass || response.data || response).map((issue: any) => {
-          // Extraer datos del usuario relacionado
-          const user = issue.supervisor || issue.user || {};
-          const userName = user.userName || '';
-          const userLastName = user.userLastName || '';
+        this.allIssues = issues.map((issue: any) => {
+          // Extraer datos del usuario relacionado - probar supervisorData primero (es lo que devuelve el backend)
+          const user = issue.supervisorData || issue.supervisor || issue.user || {};
+          let userName = user.userName || '';
+          let userLastName = user.userLastName || '';
+          
+          // Si solo tenemos el nombre (sin apellido), buscar en availableUsers para obtener datos completos
+          if (!userLastName && user.userId && this.availableUsers.length > 0) {
+            const fullUser = this.availableUsers.find(u => u.userId === user.userId);
+            if (fullUser) {
+              userName = fullUser.userName || '';
+              userLastName = fullUser.userLastName || '';
+              console.log('✓ Datos completos encontrados en availableUsers:', { userName, userLastName });
+            }
+          }
+          
           const fullName = (userName + ' ' + userLastName).trim();
 
           return {
@@ -117,6 +128,32 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  // Cargar usuarios primero, luego los demás datos
+  loadUsersAndThenData(): void {
+    this.apiService.getUsers().subscribe({
+      next: (users) => {
+        console.log('Dashboard - Usuarios cargados:', users);
+        
+        if (Array.isArray(users) && users.length > 0) {
+          this.availableUsers = users;
+        } else {
+          this.availableUsers = [];
+        }
+        
+        console.log('Dashboard - availableUsers poblado con', this.availableUsers.length, 'usuarios');
+        
+        // Ahora cargar el resto de datos
+        this.loadAllData();
+      },
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.availableUsers = [];
+        // Seguir cargando datos de todas formas
+        this.loadAllData();
+      }
+    });
+  }
+
   calculateStatistics(): void {
     // Estadísticas por estado (incluyendo closed) - usar filteredIssues
     this.issuesByStatus = this.filteredIssues.reduce((acc, issue) => {
@@ -138,9 +175,9 @@ export class DashboardComponent implements OnInit {
 
   calculateUserStats(): void {
     const userMap = this.filteredIssues.reduce((acc, issue) => {
-      const supervisorId = issue.issueSupervisor || 'Sin Asignar';
-      // Convertir ID a nombre completo
-      const displayName = this.getUserDisplayName(supervisorId);
+      // Usar el supervisorName que ya viene mapeado (userName + userLastName)
+      // o 'Sin Asignar' si no hay supervisor
+      const displayName = issue.supervisorName || 'Sin Asignar';
       
       if (!acc[displayName]) {
         acc[displayName] = {
@@ -198,6 +235,8 @@ export class DashboardComponent implements OnInit {
   }
 
   applyFilters(filterValues: any): void {
+    console.log('🔍 Aplicando filtros:', filterValues);
+    
     this.filteredIssues = this.allIssues.filter(issue => {
       let passesFilter = true;
 
@@ -208,6 +247,9 @@ export class DashboardComponent implements OnInit {
         const descMatch = (issue.description || '').toLowerCase().includes(searchLower);
         // Buscar en el nombre completo del supervisor (userName + userLastName)
         const supervisorNameMatch = (issue.supervisorName || '').toLowerCase().includes(searchLower);
+        
+        console.log(`Issue: ${issue.title} | Supervisor: ${issue.supervisorName} | Match: ${supervisorNameMatch}`);
+        
         passesFilter = passesFilter && (titleMatch || descMatch || supervisorNameMatch);
       }
 
@@ -227,7 +269,13 @@ export class DashboardComponent implements OnInit {
 
       // Filtro por usuario
       if (filterValues.userFilter) {
-        passesFilter = passesFilter && (issue.issueSupervisor || '').toString().includes(filterValues.userFilter);
+        const userFilterLower = filterValues.userFilter.toLowerCase();
+        const supervisorNameMatch = (issue.supervisorName || '').toLowerCase().includes(userFilterLower);
+        passesFilter = passesFilter && supervisorNameMatch;
+        
+        if (filterValues.userFilter && supervisorNameMatch) {
+          console.log(`✓ Usuario encontrado: ${issue.supervisorName}`);
+        }
       }
 
       // Filtro por proyecto
@@ -245,7 +293,7 @@ export class DashboardComponent implements OnInit {
       return passesFilter;
     });
 
-    console.log('Filtered issues:', this.filteredIssues.length, 'of', this.allIssues.length);
+    console.log(`✓ Filtro aplicado: ${this.filteredIssues.length} de ${this.allIssues.length} issues`);
     
     // Recalcular estadísticas con los issues filtrados
     this.calculateStatistics();
@@ -255,7 +303,7 @@ export class DashboardComponent implements OnInit {
   loadProjects(): void {
     this.apiService.getProjects().subscribe({
       next: (response) => {
-        this.availableProjects = response.projectsClasses || response.data || [];
+        this.availableProjects = response.projectsClasses || [];
         console.log('Dashboard - Proyectos cargados:', this.availableProjects.length);
       },
       error: (error) => {
@@ -266,8 +314,8 @@ export class DashboardComponent implements OnInit {
 
   loadUsers(): void {
     this.apiService.getUsers().subscribe({
-      next: (response) => {
-        this.availableUsers = response.usersClasses || response.data || response.users || [];
+      next: (users) => {
+        this.availableUsers = users;
         console.log('Dashboard - Usuarios cargados:', this.availableUsers.length);
       },
       error: (error) => {
@@ -306,7 +354,7 @@ export class DashboardComponent implements OnInit {
     
     this.apiService.getSprintsByProject(projectId).subscribe({
       next: (response) => {
-        this.availableSprints = response.sprintsClasses || response.data || [];
+        this.availableSprints = response.sprintsClasses || [];
         console.log('Dashboard - Sprints cargados:', this.availableSprints.length);
       },
       error: (error) => {

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { IUser, ApiResponse } from '../model/api-response';
 
 @Injectable({
   providedIn: 'root'
@@ -12,27 +13,27 @@ export class UserService {
   constructor(private http: HttpClient) { }
 
   // Obtener todos los usuarios
-  getAllUsers(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}`);
+  getAllUsers(): Observable<IUser[]> {
+    return this.http.get<IUser[]>(`${this.apiUrl}`);
   }
 
   // Obtener un usuario por ID
-  getUserById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  getUserById(id: number): Observable<IUser> {
+    return this.http.get<IUser>(`${this.apiUrl}/${id}`);
   }
 
   // Crear nuevo usuario (solo administradores)
-  createUser(userData: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}`, userData);
+  createUser(userData: Partial<IUser>): Observable<IUser> {
+    return this.http.post<IUser>(`${this.apiUrl}`, userData);
   }
 
   // Actualizar usuario (solo administradores)
-  updateUser(id: number, userData: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, userData);
+  updateUser(id: number, userData: Partial<IUser>): Observable<IUser> {
+    return this.http.put<IUser>(`${this.apiUrl}/${id}`, userData);
   }
 
   // Eliminar usuario (solo administradores)
-  deleteUser(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  deleteUser(id: number): Observable<ApiResponse<void>> {
+    return this.http.delete<ApiResponse<void>>(`${this.apiUrl}/${id}`);
   }
 }

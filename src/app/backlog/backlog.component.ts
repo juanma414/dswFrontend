@@ -127,8 +127,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
   loadIssues(): void {
     this.loading = true;
     this.apiService.getIssues().subscribe({
-      next: (response) => {
-        const issues = response.issueClass || response.data || response;
+      next: (issues) => {
         this.allIssues = issues
           .filter((issue: any) => issue.issueStataus === 'backlog')
           .map((issue: any) => ({
@@ -157,8 +156,8 @@ export class BacklogComponent implements OnInit, OnDestroy {
 
   loadTypeIssues(): void {
     this.apiService.getTypeIssues().subscribe({
-      next: (response) => {
-        this.availableTypeIssues = response.data || response;
+      next: (typeIssues) => {
+        this.availableTypeIssues = typeIssues;
         if (this.availableTypeIssues.length > 0) {
           this.selectedTypeIssue = this.availableTypeIssues[0].typeIssueId;
         }
@@ -173,8 +172,8 @@ export class BacklogComponent implements OnInit, OnDestroy {
   loadTypeIssuesPromise(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.apiService.getTypeIssues().subscribe({
-        next: (response) => {
-          this.availableTypeIssues = response.data || response;
+        next: (typeIssues) => {
+          this.availableTypeIssues = typeIssues;
           if (this.availableTypeIssues.length > 0) {
             this.selectedTypeIssue = this.availableTypeIssues[0].typeIssueId;
           }
@@ -192,7 +191,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
   loadProjects(): void {
     this.apiService.getProjects().subscribe({
       next: (response) => {
-        this.availableProjects = response.projectsClasses || response.data || [];
+        this.availableProjects = response.projectsClasses || [];
       },
       error: (error) => {
         console.error('Error loading projects:', error);
@@ -205,7 +204,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
     return new Promise((resolve, reject) => {
       this.apiService.getProjects().subscribe({
         next: (response) => {
-          this.availableProjects = response.projectsClasses || response.data || [];
+          this.availableProjects = response.projectsClasses || [];
           resolve();
         },
         error: (error) => {
@@ -219,8 +218,8 @@ export class BacklogComponent implements OnInit, OnDestroy {
 
   loadUsers(): void {
     this.apiService.getUsers().subscribe({
-      next: (response) => {
-        this.availableUsers = response.usersClasses || response.data || response.users || response || [];
+      next: (users) => {
+        this.availableUsers = users;
         console.log('Usuarios disponibles:', this.availableUsers.length);
       },
       error: (error) => {
@@ -233,10 +232,9 @@ export class BacklogComponent implements OnInit, OnDestroy {
   loadUsersPromise(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.apiService.getUsers().subscribe({
-        next: (response) => {
-          console.log('Respuesta de API usuarios:', response);
-          // El backend retorna usersClasses
-          this.availableUsers = response.usersClasses || response.data || response.users || [];
+        next: (users) => {
+          console.log('Respuesta de API usuarios:', users);
+          this.availableUsers = users;
           console.log('Usuarios cargados:', this.availableUsers.length);
           if (this.availableUsers.length > 0) {
             console.log('Primer usuario:', this.availableUsers[0]);
@@ -255,7 +253,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
   loadSprintsByProject(projectId: number): void {
     this.apiService.getSprintsByProject(projectId).subscribe({
       next: (response) => {
-        this.availableSprints = response.sprintsClasses || response.data || [];
+        this.availableSprints = response.sprintsClasses || [];
       },
       error: (error) => {
         console.error('Error loading sprints:', error);

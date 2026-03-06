@@ -66,7 +66,7 @@
                                             <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
                                                 {{getPriorityLabel(item.issuePriority || 'medium')}}
                                             </span>
-                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item)}}</small>
                                         </div>
                                     </div>
                                     <div class="box">
@@ -103,7 +103,7 @@
                                             <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
                                                 {{getPriorityLabel(item.issuePriority || 'medium')}}
                                             </span>
-                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                            <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item)}}</small>
                                         </div>
                                     </div>
                                     <div class="box">
@@ -137,7 +137,7 @@
                                         <span class="priority-badge" [ngClass]="'priority-' + (item.issuePriority || 'medium')">
                                             {{getPriorityLabel(item.issuePriority || 'medium')}}
                                         </span>
-                                        <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item.issueSupervisor)}}</small>
+                                        <small class="supervisor-info">Asignado a: {{getSupervisorDisplayName(item)}}</small>
                                     </div>
                                 </div>
                                 <div class="box">
@@ -174,7 +174,7 @@
             <div *ngIf="editingIssue" class="issue-info">
                 <h5>{{editingIssue.title}}</h5>
                 <p>{{editingIssue.description}}</p>
-                <p><strong>Actualmente asignado a:</strong> {{getSupervisorDisplayName(editingIssue.issueSupervisor)}}</p>
+                <p><strong>Actualmente asignado a:</strong> {{getSupervisorDisplayName(editingIssue)}}</p>
             </div>
             
             <div class="users-list">

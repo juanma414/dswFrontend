@@ -39,6 +39,14 @@ export class IssueDetailDialogComponent implements OnInit {
   // Cargar nombre del supervisor
   loadSupervisorName(): void {
     const supervisor = this.data.issue.issueSupervisor;
+    const supervisorName = this.data.issue.supervisorName;
+    
+    // Si viene supervisorName del mapeo del backend, usarlo directamente
+    if (supervisorName && supervisorName.trim()) {
+      this.supervisorName = supervisorName;
+      console.log('DEBUG - Usando supervisorName del backend:', supervisorName);
+      return;
+    }
     
     // Si supervisor está vacío o undefined
     if (!supervisor) {
@@ -46,15 +54,17 @@ export class IssueDetailDialogComponent implements OnInit {
       return;
     }
 
+    // Convertir a string para procesamiento
+    const supervisorStr = typeof supervisor === 'string' ? supervisor : supervisor.toString();
+    
     // Verificar si es un número (userId)
-    const userId = parseInt(supervisor);
-    if (!isNaN(userId) && userId.toString() === supervisor) {
+    const userId = parseInt(supervisorStr);
+    if (!isNaN(userId) && userId.toString() === supervisorStr) {
       // Es un ID de usuario, cargar el nombre desde el API
       this.userService.getUserById(userId).subscribe({
-        next: (response) => {
-          const user = response.data || response;
-          if (user && user.userName && user.userLastName) {
-            this.supervisorName = `${user.userName} ${user.userLastName}`;
+        next: (user) => {
+          if (user && user.userName) {
+            this.supervisorName = user.userLastName ? `${user.userName} ${user.userLastName}` : user.userName;
           } else {
             this.supervisorName = `Usuario #${userId}`;
           }
@@ -66,7 +76,7 @@ export class IssueDetailDialogComponent implements OnInit {
       });
     } else {
       // Ya es un nombre, usarlo directamente
-      this.supervisorName = supervisor;
+      this.supervisorName = supervisorStr;
     }
   }
 
@@ -76,12 +86,11 @@ export class IssueDetailDialogComponent implements OnInit {
 
     this.isLoadingComments = true;
     this.apiService.getCommentsByIssue(this.data.issue.issueId).subscribe({
-      next: (response) => {
-        const comments = response.data || response.comments || response || [];
+      next: (comments) => {
         // Mapear comentarios del backend al frontend
         this.comments = comments.map((comment: any) => ({
           ...comment,
-          userName: comment.user ? `${comment.user.userName} ${comment.user.userLastName}` : 'Usuario'
+          userName: comment.user ? `${comment.user.userName} ${comment.user.userLastName || ''}`.trim() : (comment.userName || 'Usuario')
         }));
         this.isLoadingComments = false;
       },
@@ -98,19 +107,25 @@ export class IssueDetailDialogComponent implements OnInit {
     if (this.commentForm.invalid || !this.data.issue.issueId) return;
 
     const currentUser = this.authService.getCurrentUser();
-    const newComment = {
+    if (!currentUser) {
+      alert('No hay usuario logueado');
+      return;
+    }
+
+    const newComment: IComment = {
       description: this.commentForm.value.commentText,
-      user: currentUser.userId,  // MikroORM usa el nombre de la relación
-      issue: this.data.issue.issueId  // MikroORM usa el nombre de la relación
+      idUser: currentUser.userId,
+      idIssue: this.data.issue.issueId,
+      user: currentUser.userId,
+      issue: this.data.issue.issueId
     };
 
-    this.apiService.createComment(newComment as any).subscribe({
-      next: (response) => {
-        const comment = response.data || response;
+    this.apiService.createComment(newComment).subscribe({
+      next: (comment) => {
         // Agregar nombre del usuario para la UI
-        const commentWithUser = {
+        const commentWithUser: IComment = {
           ...comment,
-          userName: `${currentUser.userName} ${currentUser.userLastName}`
+          userName: currentUser.userLastName ? `${currentUser.userName} ${currentUser.userLastName}` : currentUser.userName
         };
         this.comments.push(commentWithUser);
         this.commentForm.reset();

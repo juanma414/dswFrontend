@@ -76,7 +76,7 @@ describe('IssueDetailDialogComponent', () => {
     } as any);
     // Simulamos que el usuario #3 es Alan Turing
     userService.getUserById.and.returnValue(
-      of({ data: { userName: 'Alan', userLastName: 'Turing' } })
+      of({ userId: 3, userName: 'Alan', userLastName: 'Turing', userEmail: 'alan@test.com', userRol: 'developer' } as any)
     );
 
     // Creamos la instancia del componente

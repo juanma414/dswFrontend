@@ -221,7 +221,7 @@
                 {{getPriorityLabel(issue.issuePriority)}}
               </span>
             </div>
-            <div class="col">{{getUserDisplayName(issue.issueSupervisor)}}</div>
+            <div class="col">{{issue.supervisorName}}</div>
             <div class="col">{{issue.issueCreateDate | date:'dd/MM/yyyy'}}</div>
           </div>
           
