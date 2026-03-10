@@ -24,19 +24,19 @@ interface Issue {
 @Component({
   selector: 'app-backlog',
   templateUrl: './backlog.component.html',
-  styleUrls: ['./backlog.component.scss']
+  styleUrls: ['./backlog.component.scss'],
 })
 export class BacklogComponent implements OnInit, OnDestroy {
   issues: Issue[] = [];
   allIssues: Issue[] = [];
   loading = false;
   formReady = false;
-  
+
   newIssue: Issue = {
     title: '',
     description: '',
     priority: 'medium',
-    status: 'backlog'
+    status: 'backlog',
   };
 
   // Datos para selectores
@@ -63,7 +63,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
   // Variables para creación de proyecto
   showCreateProjectDialog = false;
   newProject = {
-    description: ''
+    description: '',
   };
 
   // Variables para creación de sprint
@@ -73,14 +73,14 @@ export class BacklogComponent implements OnInit, OnDestroy {
     description: '',
     startDate: null as Date | null,
     endDate: null as Date | null,
-    idProject: null as number | null
+    idProject: null as number | null,
   };
 
   constructor(
     private router: Router,
     private projectSprintService: ProjectSprintService,
     private apiService: ApiService,
-    private authService: AuthService
+    private authService: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -88,20 +88,29 @@ export class BacklogComponent implements OnInit, OnDestroy {
     Promise.all([
       this.loadTypeIssuesPromise(),
       this.loadProjectsPromise(),
-      this.loadUsersPromise()
-    ]).then(() => {
-      this.formReady = true;
-      console.log('Formulario listo - Types:', this.availableTypeIssues.length, 'Projects:', this.availableProjects.length, 'Users:', this.availableUsers.length);
-    }).catch(error => {
-      console.error('Error cargando datos del formulario:', error);
-      this.formReady = true; // Mostrar formulario de todos modos
-    });
+      this.loadUsersPromise(),
+    ])
+      .then(() => {
+        this.formReady = true;
+        console.log(
+          'Formulario listo - Types:',
+          this.availableTypeIssues.length,
+          'Projects:',
+          this.availableProjects.length,
+          'Users:',
+          this.availableUsers.length,
+        );
+      })
+      .catch((error) => {
+        console.error('Error cargando datos del formulario:', error);
+        this.formReady = true; // Mostrar formulario de todos modos
+      });
 
     this.loadIssues();
 
     // Suscribirse a cambios de proyecto
-    this.projectSubscription = this.projectSprintService.selectedProject$.subscribe(
-      (project) => {
+    this.projectSubscription =
+      this.projectSprintService.selectedProject$.subscribe((project) => {
         this.selectedProject = project;
         if (project) {
           this.loadSprintsByProject(project.idProject);
@@ -113,8 +122,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
           this.availableSprints = [];
         }
         this.applyFilters();
-      }
-    );
+      });
   }
 
   ngOnDestroy(): void {
@@ -142,7 +150,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
             idSprint: issue.sprint?.idSprint || issue.idSprint,
             typeIssueId: issue.typeIssue?.typeIssueId,
             typeIssueDescription: issue.typeIssue?.typeIssueDescription,
-            issueSupervisor: issue.issueSupervisor
+            issueSupervisor: issue.issueSupervisor,
           }));
         this.applyFilters();
         this.loading = false;
@@ -150,7 +158,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading issues:', error);
         this.loading = false;
-      }
+      },
     });
   }
 
@@ -165,7 +173,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading type issues:', error);
         this.availableTypeIssues = [];
-      }
+      },
     });
   }
 
@@ -183,7 +191,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
           console.error('Error loading type issues:', error);
           this.availableTypeIssues = [];
           resolve(); // Resolver de todos modos para no bloquear
-        }
+        },
       });
     });
   }
@@ -196,7 +204,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading projects:', error);
         this.availableProjects = [];
-      }
+      },
     });
   }
 
@@ -211,7 +219,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
           console.error('Error loading projects:', error);
           this.availableProjects = [];
           resolve(); // Resolver de todos modos para no bloquear
-        }
+        },
       });
     });
   }
@@ -225,7 +233,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading users:', error);
         this.availableUsers = [];
-      }
+      },
     });
   }
 
@@ -245,7 +253,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
           console.error('Error loading users:', error);
           this.availableUsers = [];
           resolve(); // Resolver de todos modos para no bloquear
-        }
+        },
       });
     });
   }
@@ -258,7 +266,7 @@ export class BacklogComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Error loading sprints:', error);
         this.availableSprints = [];
-      }
+      },
     });
   }
 
@@ -266,11 +274,13 @@ export class BacklogComponent implements OnInit, OnDestroy {
     console.log('=== BACKLOG - APLICANDO FILTROS ===');
     console.log('Total de issues en backlog:', this.allIssues.length);
     console.log('Proyecto seleccionado:', this.selectedProject);
-    
+
     if (this.selectedProject) {
       console.log('Filtrando por proyecto ID:', this.selectedProject.idProject);
-      this.issues = this.allIssues.filter(issue => {
-        console.log(`Issue ${issue.issueId}: idProject=${issue.idProject}, match=${issue.idProject === this.selectedProject!.idProject}`);
+      this.issues = this.allIssues.filter((issue) => {
+        console.log(
+          `Issue ${issue.issueId}: idProject=${issue.idProject}, match=${issue.idProject === this.selectedProject!.idProject}`,
+        );
         return issue.idProject === this.selectedProject!.idProject;
       });
       console.log('Issues después de filtrar:', this.issues.length);
@@ -278,78 +288,104 @@ export class BacklogComponent implements OnInit, OnDestroy {
       console.log('Sin filtro de proyecto, mostrando todos');
       this.issues = [...this.allIssues];
     }
-    
+
     console.log('=== FIN FILTROS BACKLOG ===');
   }
 
   addIssue(): void {
-    if (!this.newIssue.title || !this.newIssue.description || !this.selectedTypeIssue) {
+    if (
+      !this.newIssue.title ||
+      !this.newIssue.description ||
+      !this.selectedTypeIssue
+    ) {
       alert('Por favor completa todos los campos requeridos');
       return;
     }
 
-    const projectId = this.selectedProjectForNew || this.selectedProject?.idProject;
+    const projectId =
+      this.selectedProjectForNew || this.selectedProject?.idProject;
     if (!projectId) {
       alert('Por favor selecciona un proyecto');
       return;
     }
 
+    this.loading = true; // Agregamos un indicador de carga para el botón
+
     const currentUser = this.authService.getCurrentUser();
+
     const newIssueData: any = {
       issueDescription: `${this.newIssue.title}: ${this.newIssue.description}`,
       issueStataus: 'backlog',
       issueCreateDate: new Date(),
       issuePriority: this.newIssue.priority,
-      // Si hay un usuario seleccionado, usar ese, sino usar el usuario actual
-      issueSupervisor: this.selectedUserForNew?.toString() || currentUser?.userId?.toString() || 'Usuario',
+      issueSupervisor:
+        this.selectedUserForNew?.toString() ||
+        currentUser?.userId?.toString() ||
+        'Usuario',
       typeIssue: this.selectedTypeIssue,
-      project: projectId  // Backend espera 'project' (relación)
+      project: projectId,
     };
 
-    // Solo agregar sprint si está seleccionado
     if (this.selectedSprintForNew) {
       newIssueData.sprint = this.selectedSprintForNew;
     }
 
     this.apiService.createIssue(newIssueData).subscribe({
       next: (response) => {
-        alert('Issue creado exitosamente en el backlog');
+        //Forzamos el refresco
         this.loadIssues();
-        
-        // Resetear formulario
-        this.newIssue = {
-          title: '',
-          description: '',
-          priority: 'medium',
-          status: 'backlog'
-        };
-        this.selectedTypeIssue = this.availableTypeIssues.length > 0 ? this.availableTypeIssues[0].typeIssueId : null;
-        this.selectedSprintForNew = null;
-        this.selectedProjectForNew = null;
-        this.selectedUserForNew = null;
+
+        // Si el usuario está filtrando por un proyecto específico, nos aseguramos de que el nuevo issue aparezca ahí
+        this.applyFilters();
+
+        // Resetear el objeto
+        this.resetNewIssueForm();
+
+        this.loading = false;
+        alert('Issue creado exitosamente');
+
+        //window.location.reload();
       },
       error: (error) => {
-        console.error('Error creating issue:', error);
-        alert('Error al crear el issue: ' + (error.error?.message || error.message));
-      }
+        console.error('Error:', error);
+        this.loading = false;
+        alert('Error al crear: ' + (error.error?.message || error.message));
+      },
     });
+  }
+
+  // Sacamos el reset a una función aparte para que sea más limpio
+  resetNewIssueForm(): void {
+    this.newIssue = {
+      title: '',
+      description: '',
+      priority: 'medium',
+      status: 'backlog',
+    };
+    this.selectedTypeIssue =
+      this.availableTypeIssues.length > 0
+        ? this.availableTypeIssues[0].typeIssueId
+        : null;
+    this.selectedSprintForNew = null;
+    this.selectedProjectForNew = null;
+    this.selectedUserForNew = null;
   }
 
   moveToSprint(issue: Issue): void {
     this.assigningIssue = issue;
     this.selectedSprintForAssign = issue.idSprint || null;
     this.selectedProjectForAssign = issue.idProject || null;
-    
+
     // Intentar obtener el userId actual del issue
     const supervisor = issue.issueSupervisor;
     const userId = supervisor ? parseInt(supervisor) : null;
-    this.selectedUserForAssign = (!isNaN(userId!) && userId) ? userId : null;
-    
+    this.selectedUserForAssign = !isNaN(userId!) && userId ? userId : null;
+
     // Cargar sprints del proyecto seleccionado
     if (this.selectedProjectForAssign) {
       this.loadSprintsByProject(this.selectedProjectForAssign);
     }
-    
+
     this.showAssignDialog = true;
   }
 
@@ -371,30 +407,45 @@ export class BacklogComponent implements OnInit, OnDestroy {
       return;
     }
 
+    //Creamos el objeto de actualización
     const updateData: any = {
-      issueStataus: 'todo',  // Siempre cambiar a 'todo' cuando se asigna desde backlog
-      project: this.selectedProjectForAssign  // Backend espera 'project' (relación)
+      project: this.selectedProjectForAssign,
     };
 
+    // Si seleccionamos un Sprint, lo pasamos a 'todo'.
+    // Si NO seleccionamos un Sprint (queda en null), mantenemos 'backlog'.
     if (this.selectedSprintForAssign) {
-      updateData.sprint = this.selectedSprintForAssign;  // Backend espera 'sprint' (relación)
+      updateData.sprint = this.selectedSprintForAssign;
+      updateData.issueStataus = 'todo';
+    } else {
+      updateData.sprint = null; // Opcional: limpiar sprint si se desasigna
+      updateData.issueStataus = 'backlog';
+    }
+
+    if (this.selectedSprintForAssign) {
+      updateData.sprint = this.selectedSprintForAssign; // Backend espera 'sprint' (relación)
     }
 
     if (this.selectedUserForAssign) {
       updateData.issueSupervisor = this.selectedUserForAssign.toString();
     }
 
-    this.apiService.updateIssue(this.assigningIssue.issueId!, updateData).subscribe({
-      next: (response) => {
-        alert('Issue asignado al sprint exitosamente');
-        this.loadIssues();
-        this.closeAssignDialog();
-      },
-      error: (error) => {
-        console.error('Error assigning issue to sprint:', error);
-        alert('Error al asignar el issue: ' + (error.error?.message || error.message));
-      }
-    });
+    this.apiService
+      .updateIssue(this.assigningIssue.issueId!, updateData)
+      .subscribe({
+        next: (response) => {
+          alert('Issue asignado al sprint exitosamente');
+          this.loadIssues();
+          this.closeAssignDialog();
+        },
+        error: (error) => {
+          console.error('Error assigning issue to sprint:', error);
+          alert(
+            'Error al asignar el issue: ' +
+              (error.error?.message || error.message),
+          );
+        },
+      });
   }
 
   closeAssignDialog(): void {
@@ -423,19 +474,23 @@ export class BacklogComponent implements OnInit, OnDestroy {
 
     // Mapear el campo description a projectDescription para el backend
     const projectData = {
-      projectDescription: this.newProject.description
+      projectDescription: this.newProject.description,
     };
 
     this.apiService.createProject(projectData as any).subscribe({
       next: (response) => {
         alert('Proyecto creado exitosamente');
-        this.loadProjects();
-        this.closeCreateProjectDialog();
+
+        //Forzamos a que recargue la pagina
+        window.location.reload();
       },
       error: (error) => {
         console.error('Error creating project:', error);
-        alert('Error al crear el proyecto: ' + (error.error?.message || error.message));
-      }
+        alert(
+          'Error al crear el proyecto: ' +
+            (error.error?.message || error.message),
+        );
+      },
     });
   }
 
@@ -455,43 +510,51 @@ export class BacklogComponent implements OnInit, OnDestroy {
       description: '',
       startDate: null,
       endDate: null,
-      idProject: null
+      idProject: null,
     };
   }
 
   confirmCreateSprint(): void {
-    if (!this.newSprint.nroSprint || !this.newSprint.description || !this.newSprint.idProject) {
+    if (
+      !this.newSprint.description ||
+      !this.newSprint.idProject ||
+      !this.newSprint.startDate ||
+      !this.newSprint.endDate
+    ) {
       alert('Por favor completa todos los campos requeridos');
       return;
     }
 
-    if (this.newSprint.startDate && this.newSprint.endDate && 
-        this.newSprint.startDate > this.newSprint.endDate) {
+    if (
+      this.newSprint.startDate &&
+      this.newSprint.endDate &&
+      this.newSprint.startDate > this.newSprint.endDate
+    ) {
       alert('La fecha de inicio debe ser anterior a la fecha de fin');
       return;
     }
 
     // Mapear campos para el backend - usar 'project' en lugar de 'idProject'
     const sprintData = {
-      nroSprint: this.newSprint.nroSprint,
       description: this.newSprint.description,
       startDate: this.newSprint.startDate || new Date(),
       endDate: this.newSprint.endDate || new Date(),
-      project: this.newSprint.idProject  // Backend espera 'project' (relación)
+      project: Number(this.newSprint.idProject), // Backend espera 'project' (relación)
     };
 
     this.apiService.createSprint(sprintData as any).subscribe({
       next: (response) => {
         alert('Sprint creado exitosamente');
-        if (this.selectedProject?.idProject === this.newSprint.idProject) {
-          this.loadSprintsByProject(this.newSprint.idProject!);
-        }
-        this.closeCreateSprintDialog();
+        //Recargamos la pagina para que ya impacten las creaciones de los sprints
+        window.location.reload();
       },
       error: (error) => {
         console.error('Error creating sprint:', error);
-        alert('Error al crear el sprint: ' + (error.error?.message || error.message));
-      }
+        alert(
+          'Error al crear el sprint: ' +
+            (error.error?.message || error.message),
+        );
+      },
     });
   }
 
@@ -505,8 +568,11 @@ export class BacklogComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             console.error('Error deleting issue:', error);
-            alert('Error al eliminar el issue: ' + (error.error?.message || error.message));
-          }
+            alert(
+              'Error al eliminar el issue: ' +
+                (error.error?.message || error.message),
+            );
+          },
         });
       }
     }
@@ -518,9 +584,9 @@ export class BacklogComponent implements OnInit, OnDestroy {
 
   getPriorityLabel(priority: string): string {
     const priorityMap: { [key: string]: string } = {
-      'low': '🟢 Baja',
-      'medium': '🟡 Media',
-      'high': '🔴 Alta'
+      low: '🟢 Baja',
+      medium: '🟡 Media',
+      high: '🔴 Alta',
     };
     return priorityMap[priority] || '🟡 Media';
   }
