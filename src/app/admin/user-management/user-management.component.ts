@@ -5,24 +5,25 @@ import { UserService } from '../../services/user.service';
 @Component({
   selector: 'app-user-management',
   templateUrl: './user-management.component.html',
-  styleUrls: ['./user-management.component.scss']
+  styleUrls: ['./user-management.component.scss'],
 })
 export class UserManagementComponent implements OnInit {
   users: any[] = [];
   userForm: FormGroup;
   editingUser: any = null;
   isLoading = false;
+  hidePassword = true;
 
   constructor(
     private userService: UserService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
   ) {
     this.userForm = this.fb.group({
       userName: ['', Validators.required],
       userLastName: ['', Validators.required],
       userEmail: ['', [Validators.required, Validators.email]],
       userRol: ['', Validators.required],
-      userPassword: ['', [Validators.required, Validators.minLength(6)]]
+      userPassword: ['', [Validators.required, Validators.minLength(6)]],
     });
   }
 
@@ -40,29 +41,34 @@ export class UserManagementComponent implements OnInit {
       error: (error) => {
         console.error('Error cargando usuarios:', error);
         this.isLoading = false;
-      }
+      },
     });
   }
 
   onSubmit(): void {
     if (this.userForm.valid) {
       this.isLoading = true;
-      
+
       if (this.editingUser) {
         // Actualizar usuario existente
-        this.userService.updateUser(this.editingUser.userId, this.userForm.value).subscribe({
-          next: (response) => {
-            console.log('Usuario actualizado:', response);
-            this.loadUsers();
-            this.resetForm();
-            this.isLoading = false;
-          },
-          error: (error) => {
-            console.error('Error actualizando usuario:', error);
-            alert('Error: ' + (error.error?.message || 'Error al actualizar usuario'));
-            this.isLoading = false;
-          }
-        });
+        this.userService
+          .updateUser(this.editingUser.userId, this.userForm.value)
+          .subscribe({
+            next: (response) => {
+              console.log('Usuario actualizado:', response);
+              this.loadUsers();
+              this.resetForm();
+              this.isLoading = false;
+            },
+            error: (error) => {
+              console.error('Error actualizando usuario:', error);
+              alert(
+                'Error: ' +
+                  (error.error?.message || 'Error al actualizar usuario'),
+              );
+              this.isLoading = false;
+            },
+          });
       } else {
         // Crear nuevo usuario
         this.userService.createUser(this.userForm.value).subscribe({
@@ -74,9 +80,11 @@ export class UserManagementComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error creando usuario:', error);
-            alert('Error: ' + (error.error?.message || 'Error al crear usuario'));
+            alert(
+              'Error: ' + (error.error?.message || 'Error al crear usuario'),
+            );
             this.isLoading = false;
-          }
+          },
         });
       }
     }
@@ -89,21 +97,34 @@ export class UserManagementComponent implements OnInit {
       userLastName: user.userLastName,
       userEmail: user.userEmail,
       userRol: user.userRol,
-      userPassword: '' // No mostramos la contraseña actual
+      userPassword: '', // Lo dejamos vacío
     });
+
+    // Al editar, quitamos la obligación de escribir una contraseña
+    const passwordControl = this.userForm.get('userPassword');
+    if (passwordControl) {
+      passwordControl.clearValidators(); // Borra el Validators.required
+      passwordControl.setValidators([Validators.minLength(6)]); // Solo dejamos que, SI escribe, tenga 6 caracteres
+      passwordControl.updateValueAndValidity(); // Esto "refresca" el estado del botón
+    }
   }
 
   deleteUser(user: any): void {
-    if (confirm(`¿Estás seguro de que quieres eliminar a ${user.userName} ${user.userLastName}?`)) {
+    if (
+      confirm(
+        `¿Estás seguro de que quieres eliminar a ${user.userName} ${user.userLastName}?`,
+      )
+    ) {
       this.userService.deleteUser(user.userId).subscribe({
         next: (response) => {
           console.log('Usuario eliminado:', response);
+          // IMPORTANTE: Esto vuelve a pedir la lista al servidor
           this.loadUsers();
         },
         error: (error) => {
           console.error('Error eliminando usuario:', error);
-          alert('Error: ' + (error.error?.message || 'Error al eliminar usuario'));
-        }
+          alert('Error al borrar: ' + error.error?.message);
+        },
       });
     }
   }
@@ -111,5 +132,15 @@ export class UserManagementComponent implements OnInit {
   resetForm(): void {
     this.editingUser = null;
     this.userForm.reset();
+
+    const passwordControl = this.userForm.get('userPassword');
+    if (passwordControl) {
+      // Cuando volvemos a modo "Crear", la contraseña vuelve a ser obligatoria
+      passwordControl.setValidators([
+        Validators.required,
+        Validators.minLength(6),
+      ]);
+      passwordControl.updateValueAndValidity();
+    }
   }
 }
