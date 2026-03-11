@@ -21,7 +21,8 @@ export class JwtInterceptor implements HttpInterceptor {
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     // Obtener el token del localStorage
-    const token = localStorage.getItem('token');
+    //const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
 
     // Si existe el token, agregar el header Authorization
     if (token) {
