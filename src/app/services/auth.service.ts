@@ -21,12 +21,12 @@ export class AuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(private http: HttpClient, private router: Router) {
-    // Al inicializar, verificar si hay un token guardado
-    const token = localStorage.getItem('token');
-    console.log('[AuthService] Constructor - Token en localStorage:', token ? 'SÍ' : 'NO');
+    // Usar sessionStorage en lugar de localStorage
+    // Así la sesión se limpia automáticamente al cerrar la pestaña o el navegador
+    const token = sessionStorage.getItem('token');
+    console.log('[AuthService] Constructor - Token en sessionStorage:', token ? 'SÍ' : 'NO');
     
     if (token) {
-      // Decodificar el JWT para obtener los datos del usuario
       try {
         console.log('[AuthService] Decodificando token al inicializar');
         const user = this.decodeToken(token);
@@ -34,13 +34,12 @@ export class AuthService {
           console.log('[AuthService] Usuario restaurado:', user);
           this.currentUserSubject.next(user);
         } else {
-          // Token inválido, limpiar
           console.error('[AuthService] Token inválido, limpiando');
-          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
         }
       } catch (error) {
         console.error('[AuthService] Error decodificando token en constructor:', error);
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
       }
     }
   }
@@ -52,12 +51,11 @@ export class AuthService {
       tap((response: LoginResponse) => {
         console.log('[AuthService] Respuesta de login:', response);
         if (response.token) {
-          console.log('[AuthService] Token recibido, guardando en localStorage');
-          // Guardar el token en localStorage
-          localStorage.setItem('token', response.token);
-          console.log('[AuthService] Token guardado:', localStorage.getItem('token')?.substring(0, 20) + '...');
+          console.log('[AuthService] Token recibido, guardando en sessionStorage');
+          // Guardar el token en sessionStorage (se borra al cerrar la pestaña)
+          sessionStorage.setItem('token', response.token);
+          console.log('[AuthService] Token guardado:', sessionStorage.getItem('token')?.substring(0, 20) + '...');
           
-          // Decodificar el JWT para obtener los datos del usuario
           const user = this.decodeToken(response.token);
           console.log('[AuthService] Usuario decodificado:', user);
           if (user) {
@@ -78,9 +76,7 @@ export class AuthService {
     return this.http.post<RegisterResponse>(this.apiUrl, userData).pipe(
       tap((response: RegisterResponse) => {
         if (response.token) {
-          // Guardar el token en localStorage
-          localStorage.setItem('token', response.token);
-          // Decodificar el JWT para obtener los datos del usuario
+          sessionStorage.setItem('token', response.token);
           const user = this.decodeToken(response.token);
           if (user) {
             this.currentUserSubject.next(user);
@@ -112,9 +108,9 @@ export class AuthService {
     }
   }
 
-  // Guardar usuario en localStorage y actualizar subject
+  // Guardar usuario en sessionStorage y actualizar subject
   setCurrentUser(user: IUser): void {
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    sessionStorage.setItem('currentUser', JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
@@ -132,8 +128,8 @@ export class AuthService {
 
   // Logout
   logout(): void {
-    localStorage.removeItem('token');
-    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
     this.router.navigate(['/login']);
   }

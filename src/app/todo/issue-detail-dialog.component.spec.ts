@@ -3,7 +3,6 @@ import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of } from 'rxjs';
-
 import { IssueDetailDialogComponent } from './issue-detail-dialog.component';
 import { ApiService } from '../services/api.service';
 import { AuthService } from '../services/auth.service';
@@ -161,11 +160,14 @@ describe('IssueDetailDialogComponent', () => {
       };
       apiService.createComment.and.returnValue(of(newCommentResponse));
 
-      // Inicializamos el componente
+      // Inicializamos el componente (getCommentsByIssue retorna [] en el primer load)
       fixture.detectChanges();
 
       // Verificamos que el array de comentarios está vacío al inicio
       expect(component.comments.length).toBe(0);
+
+      // Ahora simulamos que tras crear el comentario, loadComments retorna el nuevo comentario
+      apiService.getCommentsByIssue.and.returnValue(of([newCommentResponse]));
 
       // Rellenamos el formulario con un comentario
       component.commentForm.setValue({ commentText: 'Nuevo comentario test' });
@@ -183,7 +185,7 @@ describe('IssueDetailDialogComponent', () => {
         })
       );
 
-      // 2. El comentario se agregó al array
+      // 2. El comentario se agregó al array (via loadComments)
       expect(component.comments.length).toBe(1);
       expect(component.comments[0].description).toBe('Nuevo comentario test');
 
